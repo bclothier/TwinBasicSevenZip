@@ -1,0 +1,23 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600600000") ]
+NotDispatchable Private Interface IInArchive
+  ' STDMETHOD(Open)(IInStream *stream, const UInt64 *maxCheckStartPosition, IArchiveOpenCallback *openCallback) MY_NO_THROW_DECL_ONLY x; \
+  Sub Open(ByVal stream As IInStream, ByRef maxCheckStartPosition As LongLong, ByVal openCallback As IArchiveOpenCallback)
+  ' STDMETHOD(Close)() MY_NO_THROW_DECL_ONLY x; \
+  Sub Close()
+  ' STDMETHOD(GetNumberOfItems)(UInt32 *numItems) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetNumberOfItems(ByRef numItems As Long)
+  ' STDMETHOD(GetProperty)(UInt32 index, PROPID propID, PROPVARIANT *value) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetProperty(ByVal index As Long, ByVal propID As Long, ByRef value As Variant)
+  ' STDMETHOD(Extract)(const UInt32* indices, UInt32 numItems, Int32 testMode, IArchiveExtractCallback *extractCallback) MY_NO_THROW_DECL_ONLY x; \
+  Sub Extract(ByRef indices As Long, ByVal numItems As Long, ByVal testMode As Long, ByVal extractCallback As IArchiveExtractCallback)
+  ' STDMETHOD(GetArchiveProperty)(PROPID propID, PROPVARIANT *value) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetArchiveProperty(ByVal propID As Long, ByVal value As Variant)
+  ' STDMETHOD(GetNumberOfProperties)(UInt32 *numProps) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetNumberOfProperties(ByRef numProps As Long)
+  ' STDMETHOD(GetPropertyInfo)(UInt32 index, BSTR *name, PROPID *propID, VARTYPE *varType) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetPropertyInfo(ByVal index As Long, ByVal name As String, ByRef propID As Long, ByRef varType As VbVarType)
+  ' STDMETHOD(GetNumberOfArchiveProperties)(UInt32 *numProps) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetPropertyInfo(ByRef numProps As Long)
+  ' STDMETHOD(GetArchivePropertyInfo)(UInt32 index, BSTR *name, PROPID *propID, VARTYPE *varType) MY_NO_THROW_DECL_ONLY x; \
+  Sub GetArchivePropertyInfo(ByVal index As Long, ByVal name As String, ByRef propID As Long, ByRef varType As VbVarType)
+End Interface

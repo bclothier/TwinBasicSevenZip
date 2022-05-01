@@ -1,0 +1,10 @@
+Public Module Exports
+
+	[ DllExport () ]
+    Public Sub Extract(ArchivePath As String, DestinationFolder As String)
+        Dim ae As ArchiveExtractor = New ArchiveExtractor(ArchivePath)
+        ae.Extract DestinationFolder
+        
+        Release
+    End Sub
+End Module

@@ -1,0 +1,52 @@
+Private Module Declares
+    Public Type GUID
+        Data1 As Long
+        Data2 As Integer
+        Data3 As Integer
+        Data4(0 To 7) As Byte
+    End Type
+
+    ' HRESULT CLSIDFromString(
+    '   [in]  LPCOLESTR lpsz,
+    '   [out] LPCLSID   pclsid
+    ' );
+    Public DeclareWide PtrSafe Function CLSIDFromString Lib "ole32" (ByVal lpsz As String, ByRef pclsid As GUID) As Long
+
+    ' HRESULT IIDFromString(
+    '   [in]  LPCOLESTR lpsz,
+    '   [out] LPIID     lpiid
+    ' );
+    Public DeclareWide PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As String, ByRef lpiid As GUID) As Long
+
+    ' HMODULE LoadLibraryW(
+    '   [in] LPCWSTR lpLibFileName
+    ' );
+    Public DeclareWide PtrSafe Function LoadLibraryW Lib "kernel32" (ByVal lpLibFileName As String) As LongPtr
+
+    ' BOOL FreeLibrary(
+    '   [in] HMODULE hLibModule
+    ' );
+    Public DeclareWide PtrSafe Function FreeLibrary Lib "kernel32" (ByVal hLibModule As LongPtr) As Long
+
+    ' PSSTDAPI PropVariantToVariant(
+    '   [in]  const PROPVARIANT *pPropVar,
+    '   [out] VARIANT           *pVar
+    ' );
+    Public Declare PtrSafe Function PropVariantToVariant Lib "Propsys" ( _
+        ByVal pPropVar As LongPtr, _ 
+        ByVal pVar As LongPtr _ 
+    ) As Long
+    
+    ' VOID RtlMoveMemory(
+    '   _Out_       VOID UNALIGNED *Destination,
+    '   _In_  const VOID UNALIGNED *Source,
+    '   _In_        SIZE_T         Length
+    ' );
+    Public Declare PtrSafe Sub RtlMoveMemory Lib "NtDll" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+    
+    'Zip file require using 7z.dll, not 7za.dll. 7z.dll is provided from a full install of 7-zip software
+	'STDAPI CreateObject(const GUID *clsid, const GUID *iid, void **outObject)
+    Public Declare PtrSafe Function SevenZipFullCreateObject Lib "7z.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
+    Public Declare PtrSafe Function SevenZipSlimCreateObject Lib "7za.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
+    Public Declare PtrSafe Function SevenZipTinyCreateObject Lib "7zxa.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
+End Module

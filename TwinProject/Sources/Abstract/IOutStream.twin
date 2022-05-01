@@ -1,0 +1,12 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000300040000") ]
+NotDispatchable Private Interface IOutStream
+    'Implements ISequentialOutStream
+
+    Sub Write(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) 'Implements ISequentialOutStream.Write
+
+    ' STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64 *newPosition) PURE;
+    Sub Seek(ByVal offset As LongLong, ByVal seekOrigin As Long, ByRef newPosition As LongLong)
+
+    ' STDMETHOD(SetSize)(UInt64 newSize) PURE;
+    Sub SetSize(ByVal newSize As LongLong)
+End Interface

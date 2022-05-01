@@ -1,0 +1,16 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600200000") ]
+NotDispatchable Private Interface IArchiveExtractCallback
+    'Implements IProgress
+
+    Sub SetTotal(ByVal total As LongLong) 'Implements IProgress.SetTotal
+    Sub SetCompleted(ByRef completeValue As LongLong) 'Implements IProgress.SetCompleted
+
+    ' STDMETHOD(GetStream)(UInt32 index, ISequentialOutStream **outStream, Int32 askExtractMode) x; \
+    Sub GetStream(ByVal index As Long, ByRef outStream As ISequentialOutStream, ByVal askExtractMode As Long)
+
+    ' STDMETHOD(PrepareOperation)(Int32 askExtractMode) x; \
+    Sub PrepareOperation(ByVal askExtractMode As Long)
+
+    ' STDMETHOD(SetOperationResult)(Int32 opRes) x; \
+    Sub SetOperationResult(ByVal opRes As Long)
+End Interface

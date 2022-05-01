@@ -1,0 +1,10 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000300030000") ]
+NotDispatchable Private Interface IInStream
+    'Implements ISequentialInStream
+
+    ' STDMETHOD(Read)(void *data, UInt32 size, UInt32 *processedSize) PURE;
+    Sub Read(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long)' Implements ISequentialInStream.Read
+
+    ' STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64 *newPosition) PURE;
+    Sub Seek(ByVal offset As LongLong, ByVal seekOrigin As Long, ByRef newPosition As LongLong)
+End Interface

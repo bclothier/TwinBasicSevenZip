@@ -1,0 +1,98 @@
+Private Module Objects
+    Private Type TData
+        Initialized As boolean
+    	LibPath As String
+        Manager As LibraryManager
+        FSO As Scripting.FileSystemObject
+    End Type
+    Private This As TData
+
+    Private Sub Init()
+        If This.Initialized Then
+            Exit Sub
+        End If
+
+        If Len(This.LibPath) = 0 Then
+            If TryFindDll(This.LibPath) = False Then
+                Err.Raise 5, CurrentProjectName, "Failed to initialize: Cannot find the dependent 7z*.dll. Check that you have one of those possible dll in the same folder as the " & CurrentProjectName & " dll: 7z.dll, 7za.dll, 7zxa.dll"
+            End If
+        End If
+
+        Set This.Manager = New LibraryManager(This.LibPath)
+        This.Initialized = True
+    End Sub
+
+    Private Function TryFindDll(OutLibPath As String) As Boolean
+        With FSO
+            Dim fil As Scripting.File
+            Dim fol As Scripting.Folder
+            Dim possibleDll As Scripting.File
+
+            Set fol = .GetFolder(App.Path)
+            For Each fil In fol.Files
+                Select Case fil.Name
+                    Case "7z.dll"
+                        OutLibPath = fil.Path
+                        Return True
+                    Case "7za.dll"
+                        Set possibleDll = fil
+                    Case "7zxa.dll"
+                        If possibleDll Is Nothing Then
+                            Set possibleDll = fil
+                        End If
+                End Select
+            Next
+
+            If possibleDll IsNot Nothing Then
+                OutLibPath = possibleDll.Path
+            End If
+            Return (Len(OutLibPath) > 0)
+        End With
+    End Function
+
+    Public Property Get LibPath() As String
+    	Init()
+
+        Return This.LibPath
+    End Property
+
+    Public Property Let LibPath(NewValue As String)
+        If This.Initialized Then
+            This.Initialized = False
+        End If
+
+        If This.Manager IsNot Nothing Then
+            Set This.Manager = Nothing
+        End If
+
+        This.LibPath = NewValue
+        Init()
+    End Property
+
+    Public Property Get FSO() As Scripting.FileSystemObject
+        If This.FSO Is Nothing Then
+            Set This.FSO = New Scripting.FileSystemObject
+        End If
+        Return This.FSO
+    End Property
+
+    Public Property Get Manager() As LibraryManager
+        Init()
+
+        Return This.Manager
+    End Property
+
+    Public Function GetArchiveExtractor(ArchivePath As String) As ArchiveExtractor
+        Init()
+
+        Return New ArchiveExtractor(ArchivePath)
+    End Function
+
+    Public Sub Release()
+    	If This.Initialized Then
+            Set This.Manager = Nothing
+            Set This.FSO = Nothing
+            This.Initialized = False
+        End If
+    End Sub
+End Module

@@ -1,0 +1,112 @@
+[ COMCreatable (False) ]
+Public Class ArchiveExtractor
+    Implements IArchiveOpenCallback
+    Implements IArchiveExtractCallback
+
+    Private Type TData
+    	ArchivePath As String
+        InArchive As IInArchive
+        InFileStream As Filestream
+        DestinatinoPath As String
+    End Type
+    Private This As TData
+
+    Public Sub New(ArchivePath As String)
+        This.ArchivePath = ArchivePath
+        Set This.InFileStream = New Filestream(This.ArchivePath, FileMode.ForReading)
+        
+        Set This.InArchive = Manager.CreateInArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
+
+        Dim ScanSize As LongLong = 8388608
+        This.InArchive.Open This.InFileStream, ScanSize, Me
+    End Sub
+
+    Public Property Get ItemsCount() As Long
+        This.InArchive.GetNumberOfItems(ItemsCount)
+    End Property
+
+    Public Property Get PropertiesCount() As Long
+        This.InArchive.GetNumberOfProperties(PropertiesCount)
+    End Property
+
+    Public Sub Extract(DestinationPath As String)
+        CheckAndCreateMissingSubFolders(DestinationPath)
+        This.DestinatinoPath = DestinationPath
+        This.InArchive.Extract(0, -1, False, Me)
+    End Sub
+
+    Private Sub SetTotal(ByRef files As LongLong, ByRef bytes As LongLong) Implements IArchiveOpenCallback.SetTotal
+    	Debug.Print "IArchiveOpenCallback::SetTotal", Timer
+        Debug.Print "   files: ", If(VarPtr(files), files, "<NULL>")
+        Debug.Print "   bytes: ", If(VarPtr(bytes), bytes, "<NULL>")
+        Debug.Print ""
+    End Sub
+    
+    Private Sub SetCompleted(ByRef files As LongLong, ByRef bytes As LongLong) Implements IArchiveOpenCallback.SetCompleted
+    	Debug.Print "IArchiveOpenCallback::SetCompleted", Timer
+        Debug.Print "   files: ", If(VarPtr(files), files, "<NULL>")
+        Debug.Print "   bytes: ", If(VarPtr(bytes), bytes, "<NULL>")
+        Debug.Print ""
+    End Sub
+    
+    Private Sub SetTotal(ByVal total As LongLong) Implements IArchiveExtractCallback.SetTotal
+    	Debug.Print "IArchiveExtractCallback::SetTotal", Timer
+        Debug.Print "   total: ", If(VarPtr(total), total, "<NULL>")
+        Debug.Print ""
+    End Sub
+    
+    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IArchiveExtractCallback.SetCompleted
+    	Debug.Print "IArchiveExtractCallback::SetCompleted", Timer
+        Debug.Print "   completeValue: ", If(VarPtr(completeValue), completeValue, "<NULL>")
+        Debug.Print ""
+    End Sub
+    
+    Private Sub GetStream(ByVal index As Long, ByRef outStream As ISequentialOutStream, ByVal askExtractMode As Long) Implements IArchiveExtractCallback.GetStream
+        Debug.Print "IArchiveExtractCallback::GetStream", Timer
+        Dim ItemName As Variant
+        This.InArchive.GetProperty(index, ItemPropId.Path, ItemName)
+
+        If askExtractMode = AskMode.Extract Then
+            Set outStream = New Filestream(FSO.BuildPath(This.DestinatinoPath, ItemName), FileMode.ForWriting)
+        End If
+    End Sub
+
+    Private Sub PrepareOperation(ByVal askExtractMode As Long) Implements IArchiveExtractCallback.PrepareOperation
+    	Debug.Print "IArchiveExtractCallback::PrepareOperation", Timer
+        Debug.Print "   askExtractMode: ", askExtractMode
+        Debug.Print ""
+    End Sub
+
+    Private Sub SetOperationResult(ByVal opRes As Long) Implements IArchiveExtractCallback.SetOperationResult
+    	Debug.Print "IArchiveExtractCallback::SetOperationResult", Timer
+        Debug.Print "   askExtractMode: ", opRes
+        Debug.Print ""
+    End Sub
+
+    Private Sub CheckAndCreateMissingSubFolders(Path As String)
+    	Dim ValidPath As String
+        Dim MissingFolders() As String
+        ReDim MissingFolders(0 To 7)
+        Dim Index As Long = -1
+
+        If Len(Path) = 0 Then
+            Exit Sub
+        End If
+
+        ValidPath = Path
+        Do Until FSO.FolderExists(ValidPath) Or Len(ValidPath) = 0
+            Index += 1
+            If Index = UBound(MissingFolders) Then
+                Dim NewUBound As Long = ((UBound(MissingFolders) + 1) * 2) - 1
+                ReDim Preserve MissingFolders(0 To NewUBound)
+            End If
+            MissingFolders(Index) = ValidPath
+            ValidPath = FSO.GetParentFolderName(ValidPath)
+        Loop
+
+        Dim Unindex As Long
+        For Unindex = Index To 0 Step -1
+            FSO.CreateFolder(MissingFolders(Unindex))
+        Next
+    End Sub
+End Class
