@@ -6,6 +6,7 @@ This is a proof of concept to demonstrate the capabilities of twinBASIC both as 
 This is a very rough and there is much to tap. The error handling is minimal and the testing coverage need to be better. 
 
 # Sample Usage
+
 ![image](https://user-images.githubusercontent.com/2367644/166168441-e3cd63a4-2f2e-4e89-a3a2-7d97196a8544.png)
 
 There are two ways to use the DLL:
@@ -26,7 +27,8 @@ This requires placing one of 7-Zip's DLL in the same folder as the `SevenZipArch
 
 2. As a COM objects:
 
-You can register the library using `regsvr32.exe` (keeping in mind to use the appropriate `regsvr32.exe` to match the bitness) and then reference the library from your VBx project. 
+You can register the library using `regsvr32.exe` (keeping in mind to use the appropriate `regsvr32.exe` to match the bitness) and then reference the library from your VBx project.
+
 ![image](https://user-images.githubusercontent.com/2367644/166168701-444c7125-2389-4e8b-910a-21f83a3f8d06.png)
 
 The `ArchiveFactory` allow you to specify where to locate the 7-Zip's DLL files (which can be one of `7z.dll`, `7za.dll` or `7zxa.dll`) If it's not specified explicitly, it defaults to the same folder as the `SevenZipArchive_winXX.dll` preferring to load the DLL in the given order. You can then create an `ArchiveExtracotr` from the factory as shown:
