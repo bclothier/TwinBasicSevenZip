@@ -1,4 +1,7 @@
 Public Module Formats
+    ' The contents here were derived from the SevenZipSharp project:
+    ' https://github.com/squid-box/SevenZipSharp/tree/dev/SevenZip
+    
     Public Enum StreamSeekOrigin
     	SZ_SEEK_SET = 0
         SZ_SEEK_CUR = 1
