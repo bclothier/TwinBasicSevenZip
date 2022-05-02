@@ -65,3 +65,5 @@ You can then import the source code contained in the `Twinbasic` folder using co
 ```
 ...\bin\twinBASIC_win64.exe" import .\SevenZipArchive.twinproj .\Source --overwrite
 ```
+
+For more details, refer to [the wiki](https://github.com/bclothier/TwinBasicSevenZip/wiki).
