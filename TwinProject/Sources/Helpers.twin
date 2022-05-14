@@ -1,0 +1,130 @@
+Private Module Helpers
+    Option Compare Text
+
+    Public Function ExtractCommonDirectoryPath(Paths As Variant, Optional PathSeparator As String = "\") As String
+        Dim Path As Variant
+        Dim PathArray() As String
+        Dim Result As String
+        Dim Index As Long
+        Dim Length As Long
+        Dim StartPosition As Long = 1
+        
+        If Not IsArray(Paths) Then
+            Err.Raise 5, CurrentProcedureName, "The Paths parameter must be an array of strings representing paths."
+        ElseIf VarType(Paths) = (vbArray Or vbString) Then
+            PathArray = Paths
+        Else
+            ReDim PathArray(LBound(Paths) To UBound(Paths))
+            For Each Path In Paths
+                PathArray(Index) = Path
+                Index += 1
+            Next Path
+        End If
+
+        If LBound(PathArray) >= UBound(PathArray) Then
+            Err.Raise 5, CurrentProcedureName, "The Paths parameter does not appear to contain more than one array elements. There should be more than one array elements to compare."
+        End If
+
+        Do
+            For Index = 0 To UBound(PathArray)
+                If Index Then
+                    If InStr(StartPosition, PathArray(Index), PathSeparator) <> Length Then
+                        Exit Do
+                    ElseIf Left$(PathArray(Index), Length) <> Left$(PathArray(0), Length) Then
+                        Exit Do
+                    End If
+                Else
+                    Length = InStr(StartPosition, PathArray(Index), PathSeparator)
+                    If Length = 0 Then
+                        Exit Do
+                    End If
+                End If
+            Next Index
+            Result = Left$(PathArray(0), Length + (StartPosition <> 1&) + Len(PathSeparator))
+            StartPosition = Length + 1&
+        Loop
+        Return Result
+    End Function
+
+    Public Sub CheckAndCreateMissingSubFolders(Path As String)
+    	Dim ValidPath As String
+        Dim MissingFolders() As String
+        ReDim MissingFolders(0 To 7)
+        Dim Index As Long = -1
+
+        If Len(Path) = 0 Then
+            Exit Sub
+        End If
+
+        ValidPath = Path
+        Do Until FSO.FolderExists(ValidPath) Or Len(ValidPath) = 0
+            Index += 1
+            If Index = UBound(MissingFolders) Then
+                Dim NewUBound As Long = (UBound(MissingFolders) * 2) + 1
+                ReDim Preserve MissingFolders(0 To NewUBound)
+            End If
+            MissingFolders(Index) = ValidPath
+            ValidPath = FSO.GetParentFolderName(ValidPath)
+        Loop
+
+        Dim Unindex As Long
+        For Unindex = Index To 0 Step -1
+            FSO.CreateFolder(MissingFolders(Unindex))
+        Next
+    End Sub
+
+    Public Sub CastPropVariantToVariant(ByRef Value As Variant)
+        Dim vt As Long = VarType(Value)
+        Dim ConversionNeeded As Boolean
+        
+        If vt And VT_VECTOR = VT_VECTOR Then
+            ConversionNeeded = True
+        Else
+            vt = VARENUM.[_VT_ILLEGALMASKED] And vt
+        End If
+
+        If ConversionNeeded = False Then
+            Select Case vt
+            	Case VbVarType.vbBoolean, _
+                     VbVarType.vbByte, _
+                     VbVarType.vbCurrency, _
+                     VbVarType.vbDataObject, _
+                     VbVarType.vbDate, _
+                     VbVarType.vbDecimal, _
+                     VbVarType.vbDouble, _
+                     VbVarType.vbEmpty, _
+                     VbVarType.vbError, _
+                     VbVarType.vbInteger, _
+                     VbVarType.vbLong, _
+                     VbVarType.vbLongLong, _
+                     VbVarType.vbNull, _
+                     VbVarType.vbObject, _
+                     VbVarType.vbSingle, _
+                     VbVarType.vbString, _
+                     VbVarType.vbUserDefinedType, _
+                     VbVarType.vbVariant
+                    'No conversion needed
+                Case VARENUM.VT_I1, _
+                     VARENUM.VT_UI2, _
+                     VARENUM.VT_UI4, _
+                     VARENUM.VT_UI8
+                    'TODO: Unchecked conversion
+                Case Else
+                    ConversionNeeded = True
+            End Select
+        End If
+
+        If ConversionNeeded Then
+            Dim tmp As Variant
+            Dim hr As Long = PropVariantToVariant(Value, tmp)
+            If hr = 0 Then
+                hr = PropVariantClear(Value)
+            End If
+            If hr = 0 Then
+                Value = tmp
+            Else
+                Err.Raise hr
+            End If
+        End If
+    End Sub
+End Module

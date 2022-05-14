@@ -1,0 +1,403 @@
+[ COMCreatable (False) ]
+[ Description ("A complete enumeraion of all properties recongized by 7-zip. However, most handlers will not populate majority of those properties.") ]
+Public Class ArchivePropertiesExtended
+    Private Properties As ArchiveEntry
+
+    Friend Sub New(Source As ArchiveEntry)
+        Set Properties = Source
+    End Sub
+    
+    Private Function GetPropertyValue(Id As ItemPropId) As Variant
+        Dim x As Variant
+        If Properties.TryRead(Id, x) Then Return x
+    End Function
+
+    Private Function GetPropertyValue(Of T)(Id As ItemPropId) As T
+        Dim x As T
+        If Properties.TryRead(Id, x) Then Return x
+    End Function
+
+    Public Property Get MainSubfile() As Long 'ULONG
+        Return GetPropertyValue(Of Long)(ItemPropId.MainSubfile)
+    End Property
+
+    Public Property Get Path() As String 'BSTR
+        Return GetPropertyValue(Of String)(ItemPropId.Path)
+    End Property
+
+    Public Property Get Name() As String 'BSTR
+        Return GetPropertyValue(Of String)(ItemPropId.Name)
+    End Property
+    
+    Public Property Get Extension() As String 'BSTR
+        Return GetPropertyValue(Of String)(ItemPropId.Extension)
+    End Property
+    
+    Public Property Get IsDirectory() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsDirectory)
+    End Property
+    
+    Public Property Get Size() As LongLong 'Variable between UI1 TO UI8
+        Return GetPropertyValue(Of LongLong)(ItemPropId.Size)
+    End Property
+    
+    Public Property Get PackedSize() As LongLong 'Variable between UI1 TO UI8
+        Return GetPropertyValue(Of LongLong)(ItemPropId.PackedSize)
+    End Property
+
+    Public Property Get Attributes() As Long 'WinAttrib
+        Return GetPropertyValue(Of Long)(ItemPropId.Attributes)
+    End Property
+    
+    Public Property Get CreationTime() As Date 'FILETIME
+        Return GetPropertyValue(Of Date)(ItemPropId.CreationTime)
+    End Property
+    
+    Public Property Get LastAccessTime() As Date 'FILETIME
+        Return GetPropertyValue(Of Date)(ItemPropId.LastAccessTime)
+    End Property
+    
+    Public Property Get LastWriteTime() As Date 'FILETIME
+        Return GetPropertyValue(Of Date)(ItemPropId.LastWriteTime)
+    End Property
+    
+    Public Property Get Solid() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.Solid)
+    End Property
+
+    Public Property Get Commented() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.Commented)
+    End Property
+
+    Public Property Get Encrypted() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.Encrypted)
+    End Property
+    
+    Public Property Get SplitBefore() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.SplitBefore)
+    End Property
+    
+    Public Property Get SplitAfter() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.SplitAfter)
+    End Property
+
+    Public Property Get DictionarySize() As Variant
+        Return GetPropertyValue(ItemPropId.DictionarySize)
+    End Property
+
+    Public Property Get Crc() As Long 'UINT
+        Return GetPropertyValue(Of Long)(ItemPropId.Crc)
+    End Property
+
+    Public Property Get Type() As String 'UString
+        Return GetPropertyValue(Of String)(ItemPropId.Type)
+    End Property
+
+    Public Property Get IsAnti() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsAnti)
+    End Property
+
+    Public Property Get Method() As String 'AString
+        Return GetPropertyValue(Of String)(ItemPropId.Method)
+    End Property
+
+    Public Property Get HostOS() As Variant
+        Return GetPropertyValue(ItemPropId.HostOS)
+    End Property
+
+    Public Property Get FileSystem() As String 'AString
+        Return GetPropertyValue(Of String)(ItemPropId.FileSystem)
+    End Property
+
+    Public Property Get User() As Variant
+        Return GetPropertyValue(ItemPropId.User)
+    End Property
+
+    Public Property Get Group() As Variant
+        Return GetPropertyValue(ItemPropId.Group)
+    End Property
+
+    Public Property Get Block() As Variant
+        Return GetPropertyValue(ItemPropId.Block)
+    End Property
+
+    Public Property Get Comment() As String 'AString or UString
+        Return GetPropertyValue(Of String)(ItemPropId.Comment)
+    End Property
+
+    Public Property Get Position() As LongLong 'UI8
+        Return GetPropertyValue(Of LongLong)(ItemPropId.Position)
+    End Property
+
+    Public Property Get Prefix() As Variant
+        Return GetPropertyValue(ItemPropId.Prefix)
+    End Property
+
+    Public Property Get NumSubDirs() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.NumSubDirs)
+    End Property
+
+    Public Property Get NumSubFiles() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.NumSubFiles)
+    End Property
+
+    Public Property Get UnpackVersion() As Variant
+        Return GetPropertyValue(ItemPropId.UnpackVersion)
+    End Property
+
+    Public Property Get Volume() As Variant
+        Return GetPropertyValue(ItemPropId.Volume)
+    End Property
+
+    Public Property Get IsVolume() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsVolume)
+    End Property
+
+    Public Property Get Offset() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.Offset)
+    End Property
+
+    Public Property Get Links() As Long
+        Return GetPropertyValue(Of Long)(ItemPropId.Links)
+    End Property
+
+    Public Property Get NumBlocks() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.NumBlocks)
+    End Property
+
+    Public Property Get NumVolumes() As Long
+        Return GetPropertyValue(Of Long)(ItemPropId.NumVolumes)
+    End Property
+
+    Public Property Get TimeType() As FileTimeType 'NFileTimeType
+        Return GetPropertyValue(Of Long)(ItemPropId.TimeType)
+    End Property
+    
+	Public Property Get Bit64() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.Bit64)
+    End Property
+    
+	Public Property Get BigEndian() As Boolean 'BOOL
+        Return GetPropertyValue(Of Boolean)(ItemPropId.BigEndian)
+    End Property
+    
+	Public Property Get Cpu() As String 'AString or BSTR
+        Return GetPropertyValue(Of String)(ItemPropId.Cpu)
+    End Property
+    
+	Public Property Get PhysicalSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.PhysicalSize)
+    End Property
+    
+	Public Property Get HeadersSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.HeadersSize)
+    End Property
+    
+	Public Property Get Checksum() As Variant
+        Return GetPropertyValue(ItemPropId.Checksum)
+    End Property
+    
+	Public Property Get Characts() As Variant
+        Return GetPropertyValue(ItemPropId.Characts)
+    End Property
+    
+	Public Property Get Va() As LongLong
+        Return GetPropertyValue(Of LongLong)(ItemPropId.Va)
+    End Property
+    
+	Public Property Get Id() As Variant
+        Return GetPropertyValue(ItemPropId.Id)
+    End Property
+    
+	Public Property Get ShortName() As String
+        Return GetPropertyValue(Of String)(ItemPropId.ShortName)
+    End Property
+    
+	Public Property Get CreatorApp() As String
+        Return GetPropertyValue(Of String)(ItemPropId.CreatorApp)
+    End Property
+    
+	Public Property Get SectorSize() As Long
+        Return GetPropertyValue(Of Long)(ItemPropId.SectorSize)
+    End Property
+    
+	Public Property Get PosixAttrib() As Long 'UINT32
+        Return GetPropertyValue(Of Long)(ItemPropId.PosixAttrib)
+    End Property
+    
+	Public Property Get SymLink() As Variant 'RAW
+        Return GetPropertyValue(ItemPropId.SymLink)
+    End Property
+    
+	Public Property Get Error() As String
+        Return GetPropertyValue(Of String)(ItemPropId.Error)
+    End Property
+    
+	Public Property Get TotalSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.TotalSize)
+    End Property
+    
+	Public Property Get FreeSpace() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.FreeSpace)
+    End Property
+    
+	Public Property Get ClusterSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.ClusterSize)
+    End Property
+    
+	Public Property Get VolumeName() As String
+        Return GetPropertyValue(Of String)(ItemPropId.VolumeName)
+    End Property
+    
+	Public Property Get LocalName() As String
+        Return GetPropertyValue(Of String)(ItemPropId.LocalName)
+    End Property
+    
+	Public Property Get Provider() As String
+        Return GetPropertyValue(Of String)(ItemPropId.Provider)
+    End Property
+    
+	Public Property Get NtSecure() As Variant 'Raw
+        Return GetPropertyValue(ItemPropId.NtSecure)
+    End Property
+    
+	Public Property Get IsAltStream() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsAltStream)
+    End Property
+    
+	Public Property Get IsAux() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsAux)
+    End Property
+    
+	Public Property Get IsDeleted() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsDeleted)
+    End Property
+    
+	Public Property Get IsTree() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsTree)
+    End Property
+    
+	Public Property Get Sha1() As Variant 'Raw
+        Return GetPropertyValue(ItemPropId.Sha1)
+    End Property
+    
+	Public Property Get Sha256() As Variant 'Raw
+        Return GetPropertyValue(ItemPropId.Sha256)
+    End Property
+    
+	Public Property Get ErrorType() As String
+        Return GetPropertyValue(Of String)(ItemPropId.ErrorType)
+    End Property
+    
+	Public Property Get NumErrors() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.NumErrors)
+    End Property
+    
+	Public Property Get ErrorFlags() As Long 'ULONG
+        Return GetPropertyValue(Of Long)(ItemPropId.ErrorFlags)
+    End Property
+    
+	Public Property Get WarningFlags() As Long 'ULONG
+        Return GetPropertyValue(Of Long)(ItemPropId.WarningFlags)
+    End Property
+    
+	Public Property Get Warning() As String 'USTRING
+        Return GetPropertyValue(Of String)(ItemPropId.Warning)
+    End Property
+    
+	Public Property Get NumStreams() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.NumStreams)
+    End Property
+    
+	Public Property Get NumAltStreams() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.NumAltStreams)
+    End Property
+    
+	Public Property Get AltStreamsSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.AltStreamsSize)
+    End Property
+    
+	Public Property Get VirtualSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.VirtualSize)
+    End Property
+    
+	Public Property Get UnpackSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.UnpackSize)
+    End Property
+    
+	Public Property Get TotalPhySize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.TotalPhySize)
+    End Property
+    
+	Public Property Get VolumeIndex() As LongLong 'UINT32 or UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.VolumeIndex)
+    End Property
+    
+	Public Property Get SubType() As String
+        Return GetPropertyValue(Of String)(ItemPropId.SubType)
+    End Property
+    
+	Public Property Get ShortComment() As String
+        Return GetPropertyValue(Of String)(ItemPropId.ShortComment)
+    End Property
+    
+	Public Property Get CodePage() As String
+        Return GetPropertyValue(Of String)(ItemPropId.CodePage)
+    End Property
+    
+	Public Property Get IsNotArcType() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsNotArcType)
+    End Property
+    
+	Public Property Get PhySizeCantBeDetected() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.PhySizeCantBeDetected)
+    End Property
+    
+	Public Property Get ZerosTailIsAllowed() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.ZerosTailIsAllowed)
+    End Property
+    
+	Public Property Get TailSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.TailSize)
+    End Property
+    
+	Public Property Get EmbeddedStubSize() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.EmbeddedStubSize)
+    End Property
+    
+	Public Property Get NtReparse() As Variant 'Raw
+        Return GetPropertyValue(ItemPropId.NtReparse)
+    End Property
+    
+	Public Property Get HardLink() As String
+        Return GetPropertyValue(Of String)(ItemPropId.HardLink)
+    End Property
+    
+	Public Property Get INode() As Long
+        Return GetPropertyValue(Of Long)(ItemPropId.INode)
+    End Property
+    
+	Public Property Get StreamId() As LongLong 'UINT64
+        Return GetPropertyValue(Of LongLong)(ItemPropId.StreamId)
+    End Property
+    
+	Public Property Get ReadOnly() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.ReadOnly)
+    End Property
+    
+	Public Property Get OutName() As String
+        Return GetPropertyValue(Of String)(ItemPropId.OutName)
+    End Property
+    
+	Public Property Get CopyLink() As Variant
+        Return GetPropertyValue(ItemPropId.CopyLink)
+    End Property
+	
+    Public Property Get ArchiveFileName() As String
+        Return GetPropertyValue(Of String)(ItemPropId.ArchiveFileName)
+    End Property
+	
+    Public Property Get IsHash() As Boolean
+        Return GetPropertyValue(Of Boolean)(ItemPropId.IsHash)
+    End Property
+End Class

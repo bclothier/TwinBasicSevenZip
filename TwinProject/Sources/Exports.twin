@@ -1,10 +1,22 @@
 Public Module Exports
-
 	[ DllExport () ]
     Public Sub Extract(ArchivePath As String, DestinationFolder As String)
-        Dim ae As ArchiveExtractor = New ArchiveExtractor(ArchivePath)
-        ae.Extract DestinationFolder
-        
-        Release
+        Dim Extractor As ArchiveExtractor = New ArchiveExtractor(ArchivePath)
+        Extractor.Extract DestinationFolder
+        Objects.Release
+    End Sub
+
+    [ DllExport () ]
+    Public Sub Compress(SourcePath As String, ArchivePath As String)
+        Dim Compressor As ArchiveCompressor = New ArchiveCompressor()
+        If FSO.FolderExists(SourcePath) Then
+            Compressor.Entries.AddDirectory(SourcePath, True)
+        ElseIf FSO.FileExists(SourcePath) Then
+            Compressor.Entries.AddFile(SourcePath)
+        Else
+            Err.Raise 53, CurrentProcedureName, "Invalid path given for SourcePath: '" & SourcePath & "'"
+        End If
+        Compressor.Compress(ArchivePath)
+        Objects.Release
     End Sub
 End Module

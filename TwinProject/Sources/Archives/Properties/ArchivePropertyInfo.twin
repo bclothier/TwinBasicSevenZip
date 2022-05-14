@@ -1,0 +1,35 @@
+[ COMCreatable (False) ]
+[ Description ("Provide metadata about an archive entry or the archive file.") ]
+Public Class ArchivePropertyInfo
+    Private Type TData
+        Id As ItemPropId
+        Name As String
+        Value As Variant
+    End Type
+    Private This As TData
+
+    Friend Sub New(Id As ItemPropId, Name As String, Value As Variant)
+    	This.Id = Id
+        This.Name = Name
+        If IsObject(Value) Then
+            Set This.Value = Value
+        Else
+            This.Value = Value
+        End If
+    End Sub
+
+    [ Description ("The property identifier.") ]
+    Public Property Get Id() As ItemPropId
+        Return This.Id
+    End Property
+
+    [ Description ("The property identifier as a string.") ]
+    Public Property Get Name() As String
+        Return This.Name
+    End Property
+
+    [ Description ("The value of hte property. The value may be empty if the property is not used by the archive format.") ]
+    Public Property Get Value() As Variant
+    	Return This.Value
+    End Property
+End Class

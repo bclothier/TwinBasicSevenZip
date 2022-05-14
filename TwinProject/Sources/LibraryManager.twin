@@ -36,7 +36,34 @@ Private Class LibraryManager
         If hr = 0 Then
             Return ia
         Else
-            Err.ReturnHRESULT = hr
+            Err.ReturnHResult = hr
+        End If
+    End Function
+
+    Public Function CreateOutArchive(Format As OutArchiveFormat) As IOutArchive
+        Dim hr As Long
+        Dim clsId As GUID
+        Dim iid As GUID
+        Dim oa As IOutArchive
+
+        If TryGetOutFormatClsId(Format, clsId) = False Then
+            Err.Raise 5, CurrentComponentName & "." & CurrentProcedureName, "Unable to obtain a valid CLSID for the given format (" & Format & ")."
+        End If
+        IIDFromString "{23170F69-40C1-278A-0000-000600A00000}", iid
+
+        Select Case This.Type
+            Case DllType.FullDll
+                hr = SevenZipFullCreateObject(clsId, iid, oa)
+            Case DllType.SlimDll
+                hr = SevenZipSlimCreateObject(clsId, iid, oa)
+            Case DllType.TinyDll
+                hr = SevenZipTinyCreateObject(clsId, iid, oa)
+        End Select
+
+        If hr = 0 Then
+            Return oa
+        Else
+            Err.ReturnHResult = hr
         End If
     End Function
 

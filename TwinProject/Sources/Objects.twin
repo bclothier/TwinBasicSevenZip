@@ -1,3 +1,4 @@
+[ Restricted, Hidden ]
 Private Module Objects
     Private Type TData
         Initialized As boolean
@@ -7,7 +8,7 @@ Private Module Objects
     End Type
     Private This As TData
 
-    Private Sub Init()
+    Public Sub Init()
         If This.Initialized Then
             Exit Sub
         End If
@@ -81,12 +82,6 @@ Private Module Objects
 
         Return This.Manager
     End Property
-
-    Public Function GetArchiveExtractor(ArchivePath As String) As ArchiveExtractor
-        Init()
-
-        Return New ArchiveExtractor(ArchivePath)
-    End Function
 
     Public Sub Release()
     	If This.Initialized Then

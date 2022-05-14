@@ -1,0 +1,8 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600820000") ]
+Private Interface IArchiveUpdateCallback2 Extends IArchiveUpdateCallback
+    ' STDMETHOD(GetVolumeSize)(UInt32 index, UInt64 *size) x; \
+    Sub GetVolumeSize(ByVal index As Long, ByRef size As LongLong)
+
+    ' STDMETHOD(GetVolumeStream)(UInt32 index, ISequentialOutStream **volumeStream) x; \
+    Sub GetVolumeStream(ByVal index As Long, ByRef volumeStream As ISequentialOutStream)
+End Interface

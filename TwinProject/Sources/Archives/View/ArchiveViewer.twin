@@ -1,0 +1,59 @@
+[ COMCreatable (False) ]
+[ Description ("Views the contents of an archive file and its properties.") ]
+Public Class ArchiveViewer
+    Implements IArchiveOpenCallback
+
+    Private Type TData
+        ArchivePath As String
+        InArchive As IInArchive
+        InFileStream As Filestream
+        Entries As ArchiveEntries
+        Properties As ArchiveProperties
+    End Type
+    Private This As TData
+
+    Friend Sub New(ArchivePath As String)
+        This.ArchivePath = ArchivePath
+        Set This.InFileStream = New Filestream(This.ArchivePath, FileMode.ForReading)
+        
+        Set This.InArchive = Manager.CreateInArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
+
+        Dim ScanSize As LongLong = 8388608
+        This.InArchive.Open This.InFileStream, ScanSize, Me
+    End Sub
+
+    [ Hidden, Restricted ]
+    Friend Property Get InArchive() As IInArchive
+        Return This.InArchive
+    End Property
+
+    Private Sub SetTotal(ByRef files As LongLong, ByRef bytes As LongLong) Implements IArchiveOpenCallback.SetTotal
+    	' Debug.Print "IArchiveOpenCallback::SetTotal", Timer
+        ' Debug.Print "   files: ", If(VarPtr(files), files, "<NULL>")
+        ' Debug.Print "   bytes: ", If(VarPtr(bytes), bytes, "<NULL>")
+        ' Debug.Print ""
+    End Sub
+    
+    Private Sub SetCompleted(ByRef files As LongLong, ByRef bytes As LongLong) Implements IArchiveOpenCallback.SetCompleted
+    	' Debug.Print "IArchiveOpenCallback::SetCompleted", Timer
+        ' Debug.Print "   files: ", If(VarPtr(files), files, "<NULL>")
+        ' Debug.Print "   bytes: ", If(VarPtr(bytes), bytes, "<NULL>")
+        ' Debug.Print ""
+    End Sub
+
+    [ Description ("A list of files or folders present in the given archive files.") ]
+    Public Property Get Entries() As ArchiveEntries
+        If This.Entries Is Nothing Then
+    	    Set This.Entries = New ArchiveEntries(This.InArchive)
+        End If
+        Return This.Entries
+    End Property
+
+    [ Description ("Archive file's properties") ]
+    Public Property Get Properties() As ArchiveProperties
+    	If This.Properties Is Nothing Then
+            Set This.Properties = New ArchiveProperties(This.InArchive)
+        End If
+        Return This.Properties
+    End Property
+End Class

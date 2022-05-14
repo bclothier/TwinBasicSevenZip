@@ -1,0 +1,117 @@
+[ COMCreatable (False) ]
+Private Class Filestream
+    Implements ISequentialInStream
+    Implements IInStream
+    Implements IOutStream
+    Implements ISequentialOutStream
+    Implements IOutStreamFinish
+
+    Public Enum FileMode
+    	ForWriting = Scripting.ForWriting
+        ForReading = Scripting.ForReading
+    End Enum
+
+    Private Type TData
+        Mode As FileMode
+    	FileNum As Integer
+        FilePath As String
+        Stream As ADODB.Stream
+    End Type
+    Private This As TData
+
+    Public Sub New(FilePath As String, Mode As FileMode)
+    	This.Mode = Mode
+        This.FilePath = FilePath
+        Set This.Stream = New ADODB.Stream
+        This.Stream.Type = StreamTypeEnum.adTypeBinary
+        This.Stream.Open
+
+        If This.Mode = FileMode.ForReading Then
+            This.Stream.LoadFromFile This.FilePath
+        End If
+    End Sub
+
+    Private Sub Class_Terminate()
+        If This.Stream IsNot Nothing Then
+            If This.Mode = FileMode.ForWriting Then
+                Debug.Print "Saving: ", This.FilePath, This.Stream.Position
+                If This.Stream.Size > 0 Then
+                    If This.Stream.Position <> 0 Then
+                        This.Stream.Position = 0
+                    End If
+                    CheckAndCreateMissingSubFolders FSO.GetParentFolderName(This.FilePath)
+                    This.Stream.SaveToFile This.FilePath, SaveOptionsEnum.adSaveCreateOverWrite
+                End If
+            End If
+            This.Stream.Close
+            Set This.Stream = Nothing
+        End If
+    End Sub
+
+    Private Sub Read(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) Implements ISequentialInStream.Read, IInStream.Read
+        Debug.Print "Filestream::Read called"
+        If This.Mode <> FileMode.ForReading Then
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = 0
+            End If
+            Exit Sub
+        End If
+
+        Dim StartPos As Long = This.Stream.Position
+        If size > (This.Stream.Size - This.Stream.Position) Then
+            size = (This.Stream.Size - This.Stream.Position)
+        End If
+
+        If size > 0 Then
+            Dim Buffer() As Byte
+            Buffer = This.Stream.Read(size)
+            RtlMoveMemory ByVal data, Buffer(0), size
+        End If
+
+        If VarPtr(processedSize) <> 0 Then
+            processedSize = This.Stream.Position - StartPos
+        End If
+    End Sub
+
+    Private Sub Seek(ByVal offset As LongLong, ByVal seekOrigin As Long, ByRef newPosition As LongLong) Implements IInStream.Seek, IOutStream.Seek
+        Debug.Print "Filestream::Seek called"
+        Const E_NEGATIVE_SEEK As Long = &H80070083&
+
+    	Select Case seekOrigin
+            Case StreamSeekOrigin.SZ_SEEK_SET
+                This.Stream.Position = CLng(offset)
+            Case StreamSeekOrigin.SZ_SEEK_CUR
+                This.Stream.Position += CLng(offset)
+            Case StreamSeekOrigin.SZ_SEEK_END
+                This.Stream.Position = This.Stream.Size
+        End Select
+        If VarPtr(newPosition) <> 0 Then newPosition = This.Stream.Position
+    End Sub
+
+    Private Sub Write(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) Implements ISequentialOutStream.Write, IOutStream.Write
+        Debug.Print "Filestream::Write called", This.FilePath, size, ObjPtr(This.Stream)
+        If This.Mode <> FileMode.ForWriting Then
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = 0
+            End If
+            Exit Sub
+        End If
+
+        Dim StartPos As Long = This.Stream.Position
+
+        ReDim Buffer(0 To size - 1) As Byte
+        RtlMoveMemory Buffer(0), ByVal data, size
+        This.Stream.Write Buffer
+
+        processedSize = This.Stream.Position - StartPos
+    End Sub
+
+    Private Sub SetSize(ByVal newSize As LongLong) Implements IOutStream.SetSize
+        Debug.Print "Filestream::SetSize called"
+    	'Ignored
+    End Sub
+
+    Private Sub OutStreamFinish() Implements IOutStreamFinish.OutStreamFinish
+    	Debug.Print "Filestream::OutStreamFinish called"
+    End Sub
+End Class

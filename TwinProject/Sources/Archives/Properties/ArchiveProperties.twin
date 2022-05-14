@@ -1,0 +1,42 @@
+[ COMCreatable (False) ]
+[ Description ("Metadata about a given archive entry in an archive file. The set of proprties available depends on the archive file format and can vary.") ]
+Public Class ArchiveProperties
+    Private Type TData
+    	InArchive As IInArchive
+    End Type
+    Private This As TData
+
+    Friend Sub New(InArchive As IInArchive)
+        Set This.InArchive = InArchive
+    End Sub
+
+    Public Property Get Count() As Long
+        Dim tmp As Long
+        This.InArchive.GetNumberOfArchiveProperties(tmp)
+        Return tmp
+    End Property
+
+    [ DefaultMember ]
+    Public Property Get Item(ByVal Index As Long) As ArchivePropertyInfo
+    	Dim c As Long
+        This.InArchive.GetNumberOfArchiveProperties(c)
+        If Index < 0 OrElse Index >= c Then
+            Err.Raise 5, CurrentComponentName, "Invalid value (" & Index & ") for the index. It must be between 0 and the count of items minus one (" & c & ")"
+        End If
+
+        Dim vt As Integer
+        Dim tmpId As ItemPropId
+        Dim tmpName As String
+        Dim tmpValue As Variant
+
+        This.InArchive.GetArchivePropertyInfo(Index, tmpName, tmpId, vt)
+        This.InArchive.GetArchiveProperty(tmpId, tmpValue)
+        CastPropVariantToVariant(tmpValue)
+        Return New ArchivePropertyInfo(tmpId, ItemPropIdAsString(tmpId, tmpName), tmpValue)
+    End Property
+
+    [ Enumerator ]
+    Public Function _NewEnum() As IUnknown
+        Return New ArchivePropertiesEnumerator(This.InArchive)
+    End Function
+End Class

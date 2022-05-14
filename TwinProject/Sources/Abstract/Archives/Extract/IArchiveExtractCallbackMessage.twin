@@ -1,0 +1,5 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600210000") ]
+Private Interface IArchiveExtractCallbackMessage Extends IProgress
+    ' STDMETHOD(ReportExtractResult)(UInt32 indexType, UInt32 index, Int32 opRes) x; \
+    Sub ReportExtractResult(ByVal indexType As Long, ByVal index As Long, ByVal opRes As Long)
+End Interface

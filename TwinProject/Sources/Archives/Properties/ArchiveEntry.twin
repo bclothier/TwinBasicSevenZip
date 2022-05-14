@@ -1,0 +1,44 @@
+[ COMCreatable (False) ]
+[ Description ("Represent an entry in an existing archive and provide properties for that entry. The set of properties is dynamic and dependent on the archive format.") ]
+Public Class ArchiveEntry
+    Private Type TData
+        InArchive As IInArchive
+        EntryIndex As Long
+        Properties As ArchiveEntryProperties
+    End Type
+    Private This As TData
+
+    Friend Sub New(InArchive As IInArchive, EntryIndex As Long)
+        Set This.InArchive = InArchive
+        This.EntryIndex = EntryIndex
+    End Sub
+
+    Private Sub Class_Terminate()
+        Set This.InArchive = Nothing
+    End Sub
+
+    [ Description ("Attempt to extract the given property value for an entry. If present, OutValue will be populated with the actual property value and TryRead will return true. Otherwise, it will return false and OutValue is undefined.") ]
+    Public Function TryRead(PropID As ItemPropId, OutValue As Variant) As Boolean
+        This.InArchive.GetProperty(This.EntryIndex, PropID, OutValue)
+        Return True
+    End Function
+
+    [ Description ("Report if a given property is present for that entry.") ]
+    Public Function Exists(PropID As ItemPropId) As Boolean
+        Dim Ignored As Variant
+        Return TryRead(PropID, Ignored)
+    End Function
+
+    [ Description ("Get an enumerable collection of properties; only properties that are present will be enumerated.") ]
+    Public Property Get Properties() As ArchiveEntryProperties
+        If This.Properties Is Nothing Then
+            Set This.Properties = New ArchiveEntryProperties(This.InArchive, This.EntryIndex)
+        End If
+    	Return This.Properties
+    End Property
+
+    [ Description ("Get a complete listing of all possible properties recognized by 7-zip. However, most of those will be blank as handlers do not alway use those properties.") ]
+    Public Function AllProperties() As ArchivePropertiesExtended
+        Return New ArchivePropertiesExtended(Me)
+    End Function
+End Class

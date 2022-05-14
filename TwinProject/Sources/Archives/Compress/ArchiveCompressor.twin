@@ -1,0 +1,144 @@
+[ COMCreatable (False) ]
+[ Description ("Create new archive files by providing files or folders to the compressor.") ]
+Public Class ArchiveCompressor
+    Implements IProgress
+    Implements IArchiveUpdateCallback
+    Implements IArchiveUpdateCallback2
+
+    Private Type TData
+        OutArchive As IOutArchive
+        OutFileStream As Filestream
+        Entries As ArchiveUpdateEntries
+    	ArchivePath As String
+        DestinatinoPath As String
+        CommonPath As String
+    End Type
+    Private This As TData
+
+    Public Sub New()
+        Set This.Entries = New ArchiveUpdateEntries
+    End Sub
+
+    [ Description ("A list of files or folders to be included in the new archive to be created when Compress method is called.") ]
+    Public Property Get Entries() As ArchiveUpdateEntries
+    	Return This.Entries
+    End Property
+
+    [ Description ("Create a new archive path at the given path using the supplied files & folders stored in the Entries properties.") ]
+    Public Sub Compress(ArchivePath As String)
+        Dim Count As Long = This.Entries.Count
+        This.CommonPath = This.Entries.GetCommonPath()
+
+    	This.ArchivePath = ArchivePath
+        Set This.OutFileStream = New Filestream(This.ArchivePath, FileMode.ForWriting)
+        Set This.OutArchive = Manager.CreateOutArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
+
+        This.OutArchive.UpdateItems(This.OutFileStream, Count, Me)
+
+        Set This.OutArchive = Nothing
+        Set This.OutFileStream = Nothing
+    End Sub
+
+    Private Sub SetTotal(ByVal total As LongLong) Implements IProgress.SetTotal, IArchiveUpdateCallback.SetTotal, IArchiveUpdateCallback2.SetTotal
+    	' Debug.Print "IArchiveUpdateCallback::SetTotal", Timer
+        ' Debug.Print "   total: ", If(VarPtr(total), total, "<NULL>")
+        ' Debug.Print ""
+    End Sub
+
+    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IProgress.SetCompleted, IArchiveUpdateCallback.SetCompleted, IArchiveUpdateCallback2.SetCompleted
+    	' Debug.Print "IArchiveUpdateCallback::SetCompleted", Timer
+        ' Debug.Print "   completeValue: ", If(VarPtr(completeValue), completeValue, "<NULL>")
+        ' Debug.Print ""    
+    End Sub
+
+    Private Sub GetUpdateItemInfo(ByVal index As Long, ByRef newData As Long, ByRef newProps As Long, ByRef indexInArchive As Long) Implements IArchiveUpdateCallback.GetUpdateItemInfo, IArchiveUpdateCallback2.GetUpdateItemInfo
+        Debug.Print "IArchiveUpdateCallback::GetUpdateItemInfo", index, Timer, GetCurrentThreadId
+
+        If VarPtr(newData) <> 0 Then newData = 1
+        If VarPtr(newProps) <> 0 Then newProps = 1
+        If VarPtr(indexInArchive) <> 0 Then indexInArchive = -1
+    End Sub
+
+    Private Sub GetProperty(ByVal index As Long, ByVal propID As Long, ByRef value As Variant) Implements IArchiveUpdateCallback.GetProperty, IArchiveUpdateCallback2.GetProperty
+        Debug.Print "IArchiveUpdateCallback::GetProperty", index, ItemPropIdAsString(propID, CStr(propID)), Timer, GetCurrentThreadId
+
+        Dim Entry As ArchiveUpdateEntry = This.Entries.Item(index)
+        Dim tmp As Variant
+        Dim vt As VARENUM
+
+        Select Case propID
+            Case ItemPropId.Path
+                tmp = Replace$(Entry.Path, This.CommonPath, vbNullString)
+                vt = VARENUM.VT_BSTR
+            Case ItemPropId.Extension
+                tmp = Entry.Extension
+                vt = VARENUM.VT_BSTR
+            Case ItemPropId.IsAnti
+                tmp = False
+                vt = VARENUM.VT_BOOL
+            Case ItemPropId.IsDirectory
+                tmp = Entry.IsDirectory
+                vt = VARENUM.VT_BOOL
+            Case ItemPropId.Size
+                tmp = Entry.Size
+                vt = VARENUM.VT_UI8
+            Case ItemPropId.Attributes
+                tmp = Entry.Attributes
+                vt = VARENUM.VT_UI4
+            Case ItemPropId.CreationTime
+                Err.ReturnHResult = TryConvertDateToFileTimeAsPropVariant(Entry.CreationTime, value)
+                Exit Sub
+            Case ItemPropId.LastAccessTime
+                Err.ReturnHResult = TryConvertDateToFileTimeAsPropVariant(Entry.LastAccessTime, value)
+                Exit Sub
+            Case ItemPropId.LastWriteTime
+                Err.ReturnHResult = TryConvertDateToFileTimeAsPropVariant(Entry.LastWriteTime, value)
+                Exit Sub
+            Case ItemPropId.Comment
+                tmp = Entry.Comment
+                vt = VARENUM.VT_BSTR
+        End Select
+
+        ' 7-zip does not like being passed null pointers for BSTRs
+        If VarType(tmp) = vbString AndAlso StrPtr(tmp) = 0 Then
+            tmp = ""
+        End If
+
+        Err.ReturnHResult = PropVariantChangeType(value, tmp, &H0, vt)
+    End Sub
+
+    Private Sub GetStream(ByVal index As Long, ByRef inStream As ISequentialInStream) Implements IArchiveUpdateCallback.GetStream, IArchiveUpdateCallback2.GetStream
+        Debug.Print "IArchiveUpdateCallback::GetStream", Timer, GetCurrentThreadId
+
+        Dim Entry As ArchiveUpdateEntry
+        Set Entry = This.Entries.Item(index)
+        If Entry.IsDirectory Then
+            Set inStream = Nothing
+        Else
+            Set inStream = New Filestream(Entry.Path, FileMode.ForReading)
+        End If
+    End Sub
+
+    Private Sub SetOperationResult(ByVal operationResult As Long) Implements IArchiveUpdateCallback.SetOperationResult, IArchiveUpdateCallback2.SetOperationResult
+        Debug.Print "IArchiveUpdateCallback::SetOperationResult", Timer
+        Debug.Print "   operationResult: ", operationResult
+        Debug.Print ""
+    End Sub
+
+    Private Sub GetVolumeSize(ByVal index As Long, ByRef size As LongLong) Implements IArchiveUpdateCallback2.GetVolumeSize
+    End Sub
+
+    Private Sub GetVolumeStream(ByVal index As Long, ByRef volumeStream As ISequentialOutStream) Implements IArchiveUpdateCallback2.GetVolumeStream
+    End Sub
+
+    Private Function TryConvertDateToFileTimeAsPropVariant(ByVal InputDate As Variant, ByRef OutResult As Variant) As Long
+        Dim hr As Long
+        Dim ft As FILETIME
+        hr = PropVariantToFileTime(InputDate, PSTIME_FLAGS.PSTF_LOCAL, ft)
+        If hr = 0 Then
+            Return InitPropVariantFromFileTime(ft, OutResult)
+        Else
+            Return hr
+        End If
+    End Function
+End Class

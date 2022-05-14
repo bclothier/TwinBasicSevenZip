@@ -1,0 +1,14 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600700000") ]
+Private Interface IArchiveGetRawProps Extends stdole.IUnknown
+    ' STDMETHOD(GetParent)(UInt32 index, UInt32 *parent, UInt32 *parentType) x; \
+    Sub GetParent(ByVal index As Long, ByRef parent As Long, ByRef parentType As Long)
+
+    ' STDMETHOD(GetRawProp)(UInt32 index, PROPID propID, const void **data, UInt32 *dataSize, UInt32 *propType) x; \
+    Sub GetRawProp(ByVal index As Long, ByVal propID As Long, ByRef data As LongPtr, ByRef dataSize As Long, ByRef propType As Long)
+
+    ' STDMETHOD(GetNumRawProps)(UInt32 *numProps) x; \
+    Sub GetNumRawProps(ByRef numProps As Long)
+
+    ' STDMETHOD(GetRawPropInfo)(UInt32 index, BSTR *name, PROPID *propID) x;
+    Sub GetRawPropInfo(ByVal index As Long, ByRef name As String, ByRef propID As Long)
+End Interface

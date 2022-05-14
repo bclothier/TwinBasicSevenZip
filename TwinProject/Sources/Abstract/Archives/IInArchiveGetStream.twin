@@ -1,0 +1,5 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600400000") ]
+Private Interface IInArchiveGetStream Extends stdole.IUnknown
+    ' STDMETHOD(GetStream)(UInt32 index, ISequentialInStream **stream) PURE;
+    Sub GetStream(ByVal index As Long, ByRef stream As ISequentialInStream)
+End Interface

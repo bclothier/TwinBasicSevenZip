@@ -1,0 +1,5 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600030000") ]
+Private Interface ISetProperties Extends stdole.IUnknown
+    ' STDMETHOD(SetProperties)(const wchar_t * const *names, const PROPVARIANT *values, UInt32 numProps) PURE;
+    Sub SetProperties(ByVal names As LongPtr, ByVal values As LongPtr, ByVal numProps As Long)
+End Interface

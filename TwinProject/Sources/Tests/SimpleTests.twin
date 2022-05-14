@@ -1,46 +1,89 @@
+[ Restricted, Hidden ]
 Private Module SimpleTests
-    Private Sub IsolatedTest()
-        Dim hlib As LongPtr
-        Dim clsid As GUID
-        Dim iid As GUID
-        Dim hr As Long
+    Public Sub RunAllSimpleTests()
+        Dim Failed As Boolean
+        Dim Message As String
+
+        Dim TempFailed As Boolean
+        Dim TempMessage As String
         
-        If TryGetInFormatClsId(InArchiveFormat.Zip, clsid) = False Then
-            Err.Raise 5, , "Unable to get a valid CLSID"
+        With New Tester("SingleFile", FSO.BuildPath(App.Path, "Source\Test"))
+            .CompressAndExtract("HelloWorld_7z", "Hello World.txt", "Hello World.7z")
+            .CompressAndExtract("HelloWorld_bz2", "Hello World.txt", "Hello World.bz2", "Hello World")
+            .CompressAndExtract("HelloWorld_gz", "Hello World.txt", "Hello World.gz")
+            .CompressAndExtract("HelloWorld_tar", "Hello World.txt", "Hello World.tar")
+            .CompressAndExtract("HelloWorld_wim", "Hello World.txt", "Hello World.wim")
+            .CompressAndExtract("HelloWorld_xz", "Hello World.txt", "Hello World.xz", "Hello World")
+            .CompressAndExtract("HelloWorld_zip", "Hello World.txt", "Hello World.zip")
+            TempFailed = .Results(TempMessage)
+            Message = Message & vbNewLine & TempMessage
+            Failed = If(Failed, Failed, TempFailed)
+        End With
+
+        With New Tester("ZippedTarball", FSO.BuildPath(App.Path, "Source\Test"))
+        	Dim TarFilePath As String = .CompressAndExtractSingleFile("HelloWorld_tar", "Hello World.txt", "Hello World.tar")
+            .CompressAndExtract("HelloWorld_tar_gz", TarFilePath, "Hello World.tar.gz")
+            .CompressAndExtract("HelloWorld_tar_xz", TarFilePath, "Hello World.tar.xz")
+            TempFailed = .Results(TempMessage)
+            Message = Message & vbNewLine & TempMessage
+            Failed = If(Failed, Failed, TempFailed)
+        End With
+
+        With New Tester("MultipleFiles", FSO.BuildPath(App.Path, "Source\Test"))
+            Dim MultipleFiles As Variant = Array("random.el.txt", "random.he.txt", "random.ja.txt", "random.ru.txt", "random.zh.txt")
+        	.CompressAndExtract("MultipleFiles_7z", MultipleFiles, "MultipleFiles.7z")
+            .CompressAndExtract("MultipleFiles_tar", MultipleFiles, "MultipleFiles.tar")
+            .CompressAndExtract("MultipleFiles_wim", MultipleFiles, "MultipleFiles.wim")
+            .CompressAndExtract("MultipleFiles_zip", MultipleFiles, "MultipleFiles.zip")
+            TempFailed = .Results(TempMessage)
+            Message = Message & vbNewLine & TempMessage
+            Failed = If(Failed, Failed, TempFailed)
+        End With
+
+        'Reconstruct empty folders for tests; git does not handle empty foldrss so we need to reconstruct it for source from git.
+        RestoreEmptyFolders
+
+        With New Tester("Folders", FSO.BuildPath(App.Path, "Source\Test"))
+            Dim Folder  As String = "random texts"
+        	.CompressAndExtract("Folders_7z", Folder, "random texts.7z", ".")
+            .CompressAndExtract("Folders_tar", Folder, "random texts.tar", ".")
+            .CompressAndExtract("Folders_wim", Folder, "random texts.wim", ".")
+            .CompressAndExtract("Folders_zip", Folder, "random texts.zip", ".")
+            TempFailed = .Results(TempMessage)
+            Message = Message & vbNewLine & TempMessage
+            Failed = If(Failed, Failed, TempFailed)
+        End With
+
+        Debug.Print Message
+        If Failed Then
+            Err.Raise 1, , "Tests failed"
         End If
-
-        IIDFromString "{23170F69-40C1-278A-0000-000600600000}", iid
-    	Dim a As IInArchive
-
-        hlib = LoadLibraryW (App.Path & "\7z.dll")
-        hr = SevenZipFullCreateObject(clsid, iid, a)
-        
-        Debug.Print hr, Hex(hr), a Is Nothing
-
-        'Zip file require using 7z.dll, not 7za.dll. 7z.dll is provided from a full install of 7-zip software
-        'To use 7z.dll, update the SevenZipCreateObject declare statement and LoadLibrary call above to use 7z.dll instead
-        'Dim fs As Filestream = New Filestream(App.Path & "\Test.zip")
-        Dim fs As Filestream = New Filestream(App.Path & "\Test.zip", FileMode.ForReading)
-        Dim ec As ArchiveExtractor = New ArchiveExtractor(App.Path & "\Test.zip")
-
-        Dim m As LongLong = 8388608
-        Dim n As Long
-
-        a.Open(fs, m, ec)
-        a.GetNumberOfItems(n)
-        Debug.Print "Max scan size:", m
-        Debug.Print "Number of items:", n
-        a.Extract(0, -1, 0, ec)
-        a.Close
-        Debug.Print "Library freed:", FreeLibrary(hlib)
     End Sub
 
-    Private Sub BasicExtractorTest()
-        Dim ae As ArchiveExtractor = New ArchiveExtractor(App.Path & "\Test.zip")
-        Debug.Print ae.ItemsCount
-        Debug.Print ae.PropertiesCount
-        ae.Extract App.Path & "\Test\"
-        
-        Release
+    Private Sub RestoreEmptyFolders()
+        With FSO
+            Dim BasePath As String = .BuildPath(.BuildPath(App.Path, "Source\Test"), "random texts")
+            If Not .FolderExists(BasePath) Then
+                Err.Raise 5, CurrentComponentName, "Cannot test; the random texts folder is missing. Verify the path."
+            End If
+
+            Dim FolderPath As String = .BuildPath(BasePath, "africa")
+            If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
+
+            FolderPath = .BuildPath(BasePath, "americas")
+            If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
+
+            FolderPath = .BuildPath(BasePath, "americas\central")
+            If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
+
+            FolderPath = .BuildPath(BasePath, "americas\north")
+            If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
+
+            FolderPath = .BuildPath(BasePath, "americas\south")
+            If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
+            
+            FolderPath = .BuildPath(BasePath, "australia & oceania")
+            If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
+    	End With
     End Sub
 End Module

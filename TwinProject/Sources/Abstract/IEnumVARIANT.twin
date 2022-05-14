@@ -1,0 +1,8 @@
+[ Restricted, Hidden ]
+[ InterfaceId ("00020404-0000-0000-C000-000000000046") ]
+Private Interface IEnumVARIANT Extends stdole.IUnknown
+    Sub Next(ByVal celt As Long, ByRef rgvar As Variant, ByRef pceltFetched As Long)
+    Sub Skip(ByVal celt As Long)
+    Sub Reset()
+    Sub Clone(ByRef ppenum As IEnumVARIANT)
+End Interface

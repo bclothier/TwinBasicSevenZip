@@ -2,8 +2,13 @@
 	"configuration.inherits": "Defaults",
 	"project.buildPath": "${SourcePath}\\Build\\${ProjectName}_${Architecture}.${FileExtension}",
 	"project.buildType": "ActiveX DLL",
+	"project.comThreadingModal": "MTA - Multi Threaded Apartment",
 	"project.depAware": true,
 	"project.description": "7-Zip COM Library",
+	"project.exportAfterSave": true,
+	"project.exportPath": "${SourcePath}\\Source\\TwinProject",
+	"project.exportPathIsV2": true,
+	"project.exportVerbose": true,
 	"project.id": "{27821143-CB6D-4CD2-A5D4-B281F56AA833}",
 	"project.licence": "LGPL",
 	"project.name": "SevenZipArchive",
@@ -30,7 +35,7 @@
 			"versionBuild": 0,
 			"versionMajor": 0,
 			"versionMinor": 0,
-			"versionRevision": 23
+			"versionRevision": 24
 		},
 		{
 			"id": "{B691E011-1797-432E-907A-4D8C69339129}",

@@ -1,0 +1,14 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600800000") ]
+Private Interface IArchiveUpdateCallback Extends IProgress
+    ' STDMETHOD(GetUpdateItemInfo)(UInt32 index, Int32 *newData, Int32 *newProps, UInt32 *indexInArchive) x; \
+    Sub GetUpdateItemInfo(ByVal index As Long, ByRef newData As Long, ByRef newProps As Long, ByRef indexInArchive As Long)
+    
+    ' STDMETHOD(GetProperty)(UInt32 index, PROPID propID, PROPVARIANT *value) x; \
+    Sub GetProperty(ByVal index As Long, ByVal propID As Long, ByRef value As Variant)
+    
+    ' STDMETHOD(GetStream)(UInt32 index, ISequentialInStream **inStream) x; \
+    Sub GetStream(ByVal index As Long, ByRef inStream As ISequentialInStream)
+    
+    ' STDMETHOD(SetOperationResult)(Int32 operationResult) x; \
+    Sub SetOperationResult(ByVal operationResult As Long)
+End Interface

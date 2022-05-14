@@ -1,0 +1,246 @@
+[ Restricted, Hidden ]
+Private Class Tester
+    Private Type TData
+    	BasePath As String
+        SourcePath As String
+        TestCategory As String
+        TestPath As String
+        Failed As Boolean
+        ResultMessage As String
+    End Type
+    Private This As tdata
+
+    Public Sub New(TestCategory As String, SourcePath As String)
+        This.BasePath = FSO.BuildPath(FSO.BuildPath(App.Path, "Test"), "Temp")
+        This.SourcePath = SourcePath
+        This.TestCategory = TestCategory
+        This.TestPath = FSO.BuildPath(This.BasePath, TestCategory)
+    End Sub
+
+    Private Sub Class_Terminate()
+        If This.Failed = False Then
+            If FSO.FolderExists(This.TestPath) Then
+                FSO.DeleteFolder(This.TestPath, True)
+            End If
+        End If
+    End Sub
+
+    Public Function Results(Message As String) As Boolean
+        Message = This.ResultMessage
+        Return This.Failed
+    End Function
+    
+    Public Function CompressAndExtractSingleFile(TestName As String, FileName As String, ArchiveName As String, Optional OutName As String) As String
+        On Error GoTo ErrHandler:
+
+        Dim TestFilePath As String
+        If FSO.GetAbsolutePathName(FileName) = FileName Then
+            TestFilePath = FileName
+        Else
+            TestFilePath = FSO.BuildPath(This.SourcePath, FileName)
+        End If
+        Dim TempResultFolderPath As String = FSO.BuildPath(This.TestPath, TestName)
+
+        If FSO.FolderExists(TempResultFolderPath) Then
+            FSO.DeleteFolder TempResultFolderPath, True
+        End If
+        CheckAndCreateMissingSubFolders(TempResultFolderPath)
+        
+        Dim TempResultFilePath As String
+        If Len(OutName) = 0 Then
+            TempResultFilePath = FSO.BuildPath(TempResultFolderPath, FSO.GetFileName(FileName))
+        Else
+            TempResultFilePath = FSO.BuildPath(TempResultFolderPath, OutName)
+        End If
+
+        Dim ArchiveFilePath As String = FSO.BuildPath(TempResultFolderPath, ArchiveName)
+        Dim InputCrc As String = CalcFile(TestFilePath)
+
+        Dim Compressor As ArchiveCompressor = New ArchiveCompressor
+        Compressor.Entries.AddFile(TestFilePath)
+        Compressor.Compress(ArchiveFilePath)
+
+        Dim Extractor As ArchiveExtractor = New ArchiveExtractor(ArchiveFilePath)
+        Extractor.Extract TempResultFolderPath
+
+        Dim OutputCrc As String = CalcFile(TempResultFilePath)
+        If InputCrc = OutputCrc Then
+            ConcatResultMessage "Test '" & TestName & "' passed"
+        Else
+            This.Failed = True
+            ConcatResultMessage "Test '" & TestName & "' FAILED: " & InputCrc & " <> " & OutputCrc
+        End If
+
+        Return ArchiveFilePath
+
+    ErrHandler:
+        This.Failed = True
+        ConcatResultMessage "Test '" & TestName & "' ERROR: " & Err.Number & " - " & Err.Description
+    End Function
+
+    Private Type FileData
+        IsDirectory As Boolean
+        FileName As String
+    	InputFilePath As String
+        InputCRC As String
+        OutputFilePath As String
+        OutputCRC As String
+        Failed As Boolean
+    End Type
+
+    Public Function CompressAndExtract(TestName As String, ByVal FileNames As Variant, ArchiveName As String, Optional OutName As String) As String
+        On Error GoTo ErrHandler:
+
+        If Not IsArray(FileNames) Then FileNames = Array(FileNames)
+
+        Dim TempResultFolderPath As String = FSO.BuildPath(This.TestPath, TestName)
+
+        If FSO.FolderExists(TempResultFolderPath) Then
+            FSO.DeleteFolder TempResultFolderPath, True
+        End If
+        CheckAndCreateMissingSubFolders(TempResultFolderPath)
+                 
+        Dim Compressor As ArchiveCompressor = New ArchiveCompressor
+        
+        Dim ArchiveFilePath As String = FSO.BuildPath(TempResultFolderPath, ArchiveName)
+
+        Dim Files() As FileData
+        ReDim Files(LBound(FileNames) To UBound(FileNames))
+        Dim Index As Long
+        
+        For Index = LBound(FileNames) To UBound(FileNames)
+            Dim FileName As String = FileNames(Index)
+            
+            Dim TestFilePath As String
+            If FSO.GetAbsolutePathName(FileName) = FileName Then
+                TestFilePath = FileName
+            Else
+                TestFilePath = FSO.BuildPath(This.SourcePath, FileName)
+            End If
+            
+            Dim TempResultFilePath As String
+            If Len(OutName) = 0 Then
+                TempResultFilePath = FSO.BuildPath(TempResultFolderPath, FSO.GetFileName(FileName))
+            ElseIf OutName = "." Then
+                TempResultFilePath = TempResultFolderPath
+            Else
+                TempResultFilePath = FSO.BuildPath(TempResultFolderPath, OutName)
+            End If
+
+            If FSO.FileExists(TestFilePath) Then
+                Compressor.Entries.AddFile(TestFilePath)
+                Files(Index).InputCRC = CalcFile(TestFilePath)
+            ElseIf FSO.FolderExists(TestFilePath) Then
+                Files(Index).IsDirectory = True
+                Compressor.Entries.AddDirectory(TestFilePath, True)
+            Else
+            	Err.Raise 53, CurrentProcedureName, "Invalid path for TestFilePath: '" & TestFilePath & "'"
+            End If
+            Files(Index).FileName = FileName
+            Files(Index).InputFilePath = TestFilePath
+            Files(Index).OutputFilePath = TempResultFilePath
+        Next
+
+        Compressor.Compress(ArchiveFilePath)
+
+        Dim Extractor As ArchiveExtractor = New ArchiveExtractor(ArchiveFilePath)
+        Extractor.Extract TempResultFolderPath
+
+        For Index = LBound(Files) To UBound(Files)
+        	Dim OutFilePath As String
+            If Files(Index).IsDirectory = False AndAlso FSO.FileExists(Files(Index).OutputFilePath) Then
+                OutFilePath = Files(Index).OutputFilePath
+
+                Dim OutputCrc As String = CalcFile(OutFilePath)
+                If Files(Index).InputCRC = OutputCrc Then
+                    ConcatResultMessage "Test '" & TestName & "' passed"
+                Else
+                    Files(Index).Failed = True
+                    This.Failed = True
+                    ConcatResultMessage "Test '" & TestName & "' FAILED: " & Files(Index).InputCRC & " <> " & OutputCrc
+                End If
+                Files(Index).OutputCRC = OutputCrc
+            ElseIf Files(Index).IsDirectory AndAlso FSO.FolderExists(Files(Index).OutputFilePath) Then
+                'Continue
+                If CompareFolderContents(Files(Index).InputFilePath, Files(Index).OutputFilePath, ArchiveFilePath) Then
+                    ConcatResultMessage "Test '" & TestName & "' passed"
+                Else
+                    Files(Index).Failed = True
+                    This.Failed = True
+                    ConcatResultMessage "Test '" & TestName & "' FOLDER NOT SAME: " & Files(Index).OutputFilePath
+                End If
+            Else
+                Files(Index).Failed = True
+                This.Failed = True
+                ConcatResultMessage "Test '" & TestName & "' NOT FOUND: " & Files(Index).OutputFilePath
+            End If
+        Next
+
+        Return ArchiveFilePath
+
+    ErrHandler:
+        This.Failed = True
+        ConcatResultMessage "Test '" & TestName & "' ERROR: " & Err.Number & " - " & Err.Description
+        Return vbNullString
+        Resume 'for debugging
+    End Function
+
+    Private Function CompareFolderContents(SourcePath As String, TargetPath As String, IgnoredFilePath As String) As Boolean
+        Dim SourceFolder As Scripting.Folder = FSO.GetFolder(SourcePath)
+        Dim TargetFolder As Scripting.Folder = FSO.GetFolder(TargetPath)
+
+        ' If SourceFolder.Files.Count <> TargetFolder.Files.Count _
+        ' OrElse SourceFolder.SubFolders.Count <> TargetFolder.SubFolders.Count Then
+        '     Return False
+        ' End If
+
+        Dim SourceFile As Scripting.File
+        Dim TargetFile As Scripting.File
+        Dim Found As Boolean
+
+        For Each SourceFile In SourceFolder.Files
+            Found = False
+            For Each TargetFile In TargetFolder.Files
+                If TargetFile.Path <> IgnoredFilePath AndAlso Replace$(SourceFile.Path, SourceFolder.Path, vbNullString) = Replace$(TargetFile.Path, TargetFolder.Path, vbNullString) Then
+                    Found = True
+                    If CRC32.CalcFile(SourceFile.Path) = CRC32.CalcFile(TargetFile.Path) Then
+                        Exit For
+                    Else
+                        Return False
+                    End If
+                End If
+            Next
+
+            If Found = False Then
+                Return False
+            End If
+        Next
+
+        Dim SubSourceFolder As Scripting.Folder
+        Dim SubTargetFolder As Scripting.Folder
+
+        For Each SubSourceFolder In SourceFolder.SubFolders
+            Found = False
+            For Each SubTargetFolder In TargetFolder.SubFolders
+                If Replace$(SubSourceFolder.Path, SourceFolder.Path, vbNullString) = Replace$(SubTargetFolder.Path, TargetFolder.Path, vbNullString) Then
+                    Found = True
+                    If CompareFolderContents(SubSourceFolder.Path, SubTargetFolder.Path, IgnoredFilePath) Then
+                        Exit For
+                    Else
+                        Return False
+                    End If
+                End If
+            Next
+
+            If Found = False Then
+                Return False
+            End If
+        Next
+
+        Return True
+    End Function
+
+    Private Sub ConcatResultMessage(NewLine As String)
+        This.ResultMessage = This.ResultMessage & vbNewLine & NewLine
+    End Sub
+End Class

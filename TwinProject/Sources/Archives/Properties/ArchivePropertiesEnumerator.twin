@@ -1,0 +1,81 @@
+[ Restricted, Hidden ]
+[ COMCreatable (False) ]
+Private Class ArchivePropertiesEnumerator
+    Implements IEnumVARIANT
+
+    Private Const E_INVALIDARGS As Long = &H80070057
+    Private Const S_OK As Long = 0
+    Private Const S_FALSE As Long = 1
+
+    Private Type TData
+        CurrentIndex As Long
+        PropertiesCount As Long
+        PropIDs() As ItemPropId
+        InArchive As IInArchive
+    End Type
+    Private This As TData
+
+    Friend Sub New(InArchive As IInArchive, Optional CurrentIndex As Long = 0)
+    	This.CurrentIndex = CurrentIndex
+        Set This.InArchive = InArchive
+        
+        This.InArchive.GetNumberOfArchiveProperties(This.PropertiesCount)
+        ReDim This.PropIDs(0 To (This.PropertiesCount - 1))
+        Dim Index As Long
+        For Index = 0 To (This.PropertiesCount - 1)
+        	Dim Ignored1 As String
+            Dim Ignored2 As Integer
+            This.InArchive.GetArchivePropertyInfo(Index, Ignored1, This.PropIDs(Index), Ignored2)
+        Next
+    End Sub
+
+    Private Sub Next(ByVal celt As Long, ByRef rgvar As Variant, ByRef pceltFetched As Long) Implements IEnumVARIANT.Next
+        If VarPtr(rgvar) = 0 Then
+            Err.ReturnHResult = E_INVALIDARGS
+            Exit Sub
+        End If
+
+        Dim Index As Long
+        If celt = 1 Then
+            If This.CurrentIndex < This.PropertiesCount Then
+                Index = 1
+
+                Dim vt As Integer
+                Dim tmpId As ItemPropId
+                Dim tmpName As String
+                Dim tmpValue As Variant
+
+                This.InArchive.GetArchivePropertyInfo(This.CurrentIndex, tmpName, tmpId, vt)
+                This.InArchive.GetArchiveProperty(tmpId, tmpValue)
+                CastPropVariantToVariant(tmpValue)
+                
+                Set rgvar = New ArchivePropertyInfo(tmpId, ItemPropIdAsString(tmpId, tmpName), tmpValue)
+                This.CurrentIndex += 1
+            End If
+        Else
+            Err.ReturnHResult = E_INVALIDARGS
+            Exit Sub
+        End If
+        
+        If VarPtr(pceltFetched) <> 0 Then
+            pceltFetched = Index
+        End If
+
+        Err.ReturnHResult = If(celt > Index, S_FALSE, S_OK)
+    End Sub
+
+    Private Sub Skip(ByVal celt As Long) Implements IEnumVARIANT.Skip
+        This.CurrentIndex += celt
+        If This.CurrentIndex > This.PropertiesCount Then
+            This.CurrentIndex = This.PropertiesCount
+        End If
+    End Sub
+
+    Private Sub Reset() Implements IEnumVARIANT.Reset
+    	This.CurrentIndex = 0
+    End Sub
+
+    Private Sub Clone(ByRef ppenum As IEnumVARIANT) Implements IEnumVARIANT.Clone
+        Set ppenum = New ArchivePropertiesEnumerator(This.InArchive, This.CurrentIndex)
+    End Sub
+End Class

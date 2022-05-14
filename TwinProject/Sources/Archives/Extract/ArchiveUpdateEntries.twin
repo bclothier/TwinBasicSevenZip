@@ -1,0 +1,115 @@
+[ COMCreatable (False) ]
+[ Description ("A collection of new archive entries to be added into an archive file when compressing.") ]
+Public Class ArchiveUpdateEntries
+    Private Type TData
+        Entries As Scripting.Dictionary
+    End Type
+    Private This As TData
+
+    Friend Sub New()
+        Set This.Entries = New Scripting.Dictionary
+    End Sub
+
+    Private Sub Class_Terminate()
+        If This.Entries IsNot Nothing Then
+            This.Entries.RemoveAll
+            Set This.Entries = Nothing
+        End If
+    End Sub
+
+    [ DefaultMember ]
+    Public Function Item(Index As Long) As ArchiveUpdateEntry
+        With This.Entries
+            If Index >= LBound(.Keys) AndAlso Index <= UBound(.Keys) Then
+                Return .Item(.Keys(Index))
+            Else
+                Err.Raise 5, CurrentComponentName, "Invalid index (" & Index & "); must be between " & LBound(.Keys) & " and " & UBound(.Keys) & "."
+            End If
+        End With
+    End Function
+
+    [ Description ("Add a single file to the archive file being created.") ]
+    Public Function AddFile(Path As String, Optional Comment As String, Optional Attributes As Long) As ArchiveUpdateEntry
+        If FSO.FileExists(Path) Then
+            Return Add(Path, Comment, Attributes)
+        Else
+            Err.Raise 53, CurrentComponentName, "The path '" & Path & "' is not a path to a valid file."
+        End If
+    End Function
+
+    [ Description ("Add all files and subfolders from a given path to the archive file being created.") ]
+    Public Sub AddDirectory(Path As String, IncludeSubFoldrs As Boolean)
+    	If FSO.FolderExists(Path) Then
+            AddFiles(FSO.GetFolder(Path), IncludeSubFoldrs)
+        Else
+            Err.Raise 76, CurrentComponentName, "The path '" & Path & "' is not a path to a valid directory."
+        End If
+    End Sub
+
+    Private Sub AddFiles(CurrentFolder As Scripting.Folder, IncludeSubFolders As Boolean)
+    	Dim File As Scripting.File
+        Dim Folder As Scripting.Folder
+
+        For Each File In CurrentFolder.Files
+            Add(File.Path)
+        Next
+
+        If IncludeSubFolders Then
+            For Each Folder In CurrentFolder.SubFolders
+                Add(Folder.Path)
+                AddFiles(Folder, IncludeSubFolders)
+            Next
+        End If
+    End Sub
+
+    Private Function Add(Path As String, Optional Comment As String, Optional Attributes As Long) As ArchiveUpdateEntry
+    	Dim Info As ArchiveUpdateEntry = New ArchiveUpdateEntry(Path, Comment, Attributes)
+        Set This.Entries.Item(Path) = Info
+    End Function
+
+    [ Description ("Removes an entry previously added. Note that this does not actually remove any files from the created archive if the Compress method has been called.") ]
+    Public Function TryDelete(Path As String) As Boolean
+    	If This.Entries.Exists(Path) Then
+            This.Entries.Remove(Path)
+            Return (This.Entries.Exists(Path) = False)
+        End If
+    End Function
+
+    Public Property Get Count() As Long
+        Return This.Entries.Count
+    End Property
+
+    [ Description ("Attempts to extract an existing entry based on the path. If found, the function will return true and the entry will be populated in the OutEntry parameter. Otherwise, it returns false.") ]
+    Public Function TryGet(Path As String, OutEntry As ArchiveUpdateEntry) As Boolean
+        If This.Entries.Exists(Path) Then
+            Set OutEntry = This.Entries(Path)
+            Return True
+        End If
+    End Function
+
+    [ Description ("Extracts the common path from all entries created. This is then later used during compression to strip out the common path, making the new archive file act as the root for all the files/folders being added.") ]
+    Public Function GetCommonPath() As String
+        If This.Entries.Count < 1 Then
+            Return vbNullString
+        ElseIf This.Entries.Count = 1 Then
+            Return FSO.GetParentFolderName(Me.Item(0).Path) & "\"
+        End If
+
+        Dim Paths() As String
+        ReDim Paths(0 To This.Entries.Count - 1)
+        
+        Dim Index As Long
+        Dim Entry As ArchiveUpdateEntry
+        For Each Entry In Me
+            Paths(Index) = Entry.Path
+            Index += 1
+        Next
+
+        Return ExtractCommonDirectoryPath(Paths)
+    End Function
+
+    [ Enumerator ]
+    Public Function _NewEnum() As IUnknown
+        Return New ArchiveUpdateEntriesEnumerator(Me, This.Entries.Keys)
+    End Function
+End Class

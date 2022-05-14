@@ -1,0 +1,34 @@
+[ COMCreatable (False) ]
+[ Description ("A collection of files or folders present in an existing archive.") ]
+Public Class ArchiveEntries
+    Private Type TData
+    	InArchive As IInArchive
+    End Type
+    Private This As TData
+
+    Public Sub New(InArchive As IInArchive)
+        Set This.InArchive = InArchive
+    End Sub
+
+    Public Property Get Count() As Long
+        Dim tmp As Long
+        This.InArchive.GetNumberOfItems(tmp)
+        Return tmp
+    End Property
+
+    [ DefaultMember ]
+    Public Property Get Item(ByVal Index As Long) As ArchiveEntry
+    	Dim c As Long
+        This.InArchive.GetNumberOfItems(c)
+        If Index < 0 OrElse Index >= c Then
+            Err.Raise 5, CurrentComponentName, "Invalid value (" & Index & ") for the index. It must be between 0 and the count of items minus one (" & c & ")"
+        End If
+
+        Return New ArchiveEntry(This.InArchive, Index)
+    End Property
+
+    [ Enumerator ]
+    Public Function _NewEnum() As IUnknown
+        Return New ArchiveEntriesEnumerator(This.InArchive)
+    End Function
+End Class

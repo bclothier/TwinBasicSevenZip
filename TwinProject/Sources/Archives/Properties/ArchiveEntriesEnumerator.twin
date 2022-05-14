@@ -1,0 +1,66 @@
+[ Restricted, Hidden ]
+[ COMCreatable (False) ]
+Private Class ArchiveEntriesEnumerator
+    Implements IEnumVARIANT
+
+    Private Const E_INVALIDARGS As Long = &H80070057
+    Private Const S_OK As Long = 0
+    Private Const S_FALSE As Long = 1
+
+    Private Type TData
+        CurrentIndex As Long
+        EntriesCount As Long
+        InArchive As IInArchive
+    End Type
+    Private This As TData
+
+    Friend Sub New(InArchive As IInArchive, Optional CurrentIndex As Long = 0, Optional EntriesCount As Long = 0)
+    	This.CurrentIndex = CurrentIndex
+        Set This.InArchive = InArchive
+        If EntriesCount Then
+            This.EntriesCount = EntriesCount
+        Else
+            This.InArchive.GetNumberOfItems(This.EntriesCount)
+        End If
+    End Sub
+
+    Private Sub Next(ByVal celt As Long, ByRef rgvar As Variant, ByRef pceltFetched As Long) Implements IEnumVARIANT.Next
+        If VarPtr(rgvar) = 0 Then
+            Err.ReturnHResult = E_INVALIDARGS
+            Exit Sub
+        End If
+
+        Dim Index As Long
+        If celt = 1 Then
+            If This.CurrentIndex < This.EntriesCount Then
+                Index = 1
+                Set rgvar = New ArchiveEntry(This.InArchive, This.CurrentIndex)
+                This.CurrentIndex += 1
+            End If
+        Else
+            Err.ReturnHResult = E_INVALIDARGS
+            Exit Sub
+        End If
+        
+        If VarPtr(pceltFetched) <> 0 Then
+            pceltFetched = Index
+        End If
+
+        Err.ReturnHResult = If(celt > Index, S_FALSE, S_OK)
+    End Sub
+
+    Private Sub Skip(ByVal celt As Long) Implements IEnumVARIANT.Skip
+        This.CurrentIndex += celt
+        If This.CurrentIndex > This.EntriesCount Then
+            This.CurrentIndex = This.EntriesCount
+        End If
+    End Sub
+
+    Private Sub Reset() Implements IEnumVARIANT.Reset
+    	This.CurrentIndex = 0
+    End Sub
+
+    Private Sub Clone(ByRef ppenum As IEnumVARIANT) Implements IEnumVARIANT.Clone
+        Set ppenum = New ArchiveEntriesEnumerator(This.InArchive, This.CurrentIndex, This.EntriesCount)
+    End Sub
+End Class

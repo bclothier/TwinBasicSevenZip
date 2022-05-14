@@ -1,0 +1,36 @@
+[ PredeclaredId (True) ]
+[ Description ("Create new objects and guarantees proper initialization of the library before using the objects. To use a specific 7-zip DLL file, you must call the ArchiveLibPath first before creating any objects.") ]
+Public Class ArchiveFactory
+    [ Description ("Get the path to the dependent 7-Zip DLL library (e.g. 7z.dll, 7za.dll or 7zxa.dll) used by the 7-Zip COM library.") ]
+    Public Property Get ArchiveLibPath() As String
+        Return Objects.LibPath
+    End Property
+
+    [ Description ("Set the path to the ddependent 7-Zip DLL library (e.g. 7z.dll, 7za.dll or 7zxa.dll). This must be called befreo using any other methods of the 7-Zip COM library.") ]
+    Public Property Let ArchiveLibPath(NewValue As String)
+    	Objects.LibPath = NewValue
+    End Property
+
+    [ Description ("Get an extractor for a given archive file. The handler is inferred from the file's extension, so a zip handler will be used for .zip file, 7-zip handler for .7z and so forth.") ]
+    Public Function CreateArchiveExtractor(ArchivePath As String) As ArchiveExtractor
+        Objects.Init
+        Return New ArchiveExtractor(ArchivePath)
+    End Function
+
+    [ Description ("Get a compressor to create a new archive file. The handler is determined by file's extension when compressing.") ]
+    Public Function CreateArchiveCompressor() As ArchiveCompressor
+        Objects.Init
+        Return New ArchiveCompressor
+    End Function
+
+    [ Description ("Get an archive viewer. The handler is inferred from the file's extension.") ]
+    Public Function CreateArchiveViewer(ArchivePath As String) As ArchiveViewer
+        Objects.Init
+        Return New ArchiveViewer(ArchivePath)
+    End Function
+
+    [ Description ("Release all resources for the library as a aid in cleanup.") ]
+    Public Sub ReleaseArchiveLib()
+        Objects.Release
+    End Sub
+End Class

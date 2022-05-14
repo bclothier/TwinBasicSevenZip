@@ -1,0 +1,97 @@
+[ COMCreatable (False) ]
+[ Description ("Extracts an existing archive file into a specified folder.") ]
+Public Class ArchiveExtractor
+    Implements ArchiveViewer Via Viewer
+    Implements IArchiveExtractCallback
+
+    Private Type TData
+    	ArchivePath As String
+        InArchive As IInArchive
+        InFileStream As Filestream
+        DestinatinoPath As String
+    End Type
+    Private This As TData
+
+    Public Sub New(ArchivePath As String)
+        This.ArchivePath = ArchivePath
+        Set Viewer = New ArchiveViewer(This.ArchivePath)
+        Set This.InArchive = Viewer.InArchive
+    End Sub
+
+    [ Description ("Performs the extraction into the destination. The destination must be a folder. If the folder does not exist, it will be created automatically.") ]
+    Public Sub Extract(DestinationPath As String)
+        CheckAndCreateMissingSubFolders(DestinationPath)
+        This.DestinatinoPath = DestinationPath
+        This.InArchive.Extract(0, -1, False, Me)
+    End Sub
+
+    Private Sub SetTotal(ByVal total As LongLong) Implements IArchiveExtractCallback.SetTotal
+    	' Debug.Print "IArchiveExtractCallback::SetTotal", Timer
+        ' Debug.Print "   total: ", If(VarPtr(total), total, "<NULL>")
+        ' Debug.Print ""
+    End Sub
+    
+    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IArchiveExtractCallback.SetCompleted
+    	' Debug.Print "IArchiveExtractCallback::SetCompleted", Timer
+        ' Debug.Print "   completeValue: ", If(VarPtr(completeValue), completeValue, "<NULL>")
+        ' Debug.Print ""
+    End Sub
+    
+    Private Sub GetStream(ByVal index As Long, ByRef outStream As ISequentialOutStream, ByVal askExtractMode As Long) Implements IArchiveExtractCallback.GetStream
+        Debug.Print "IArchiveExtractCallback::GetStream", Timer, GetCurrentThreadId
+        
+        Dim ItemName As Variant
+        This.InArchive.GetProperty(index, ItemPropId.Path, ItemName)
+
+        If Len(ItemName) = 0 Then
+            This.InArchive.GetProperty(index, ItemPropId.Name, ItemName)
+        End If
+
+        If Len(ItemName) = 0 Then
+            Dim Count As Long
+            This.InArchive.GetNumberOfItems(Count)
+            
+            Dim Extension As String = "." & FSO.GetExtensionName(This.ArchivePath)
+            Dim FileName As String = FSO.GetFileName(This.ArchivePath)
+
+            If Right$(FileName, Len(Extension)) = Extension Then
+                FileName = Left$(FileName, Len(FileName) - Len(Extension))
+            End If
+
+            If Count = 1 Then
+                ItemName = FileName
+            Else
+                ItemName = FileName & "_" & Right$("000" & index, 3)
+            End If
+        End If
+
+        Dim FullPath As String = FSO.BuildPath(This.DestinatinoPath, ItemName)
+
+        If askExtractMode = AskMode.Extract Then
+            Dim IsDirectory As Variant
+            This.InArchive.GetProperty(index, ItemPropId.IsDirectory, IsDirectory)
+            If IsDirectory = False Then
+                Dim EntryAttributes As Variant
+                This.InArchive.GetProperty(index, ItemPropId.Attributes, EntryAttributes)
+                IsDirectory = (EntryAttributes And vbDirectory) = vbDirectory
+            End If
+            If IsDirectory AndAlso Not FSO.FolderExists(FullPath) Then
+                CheckAndCreateMissingSubFolders(FullPath)
+            End If
+
+            Set outStream = New Filestream(FullPath, FileMode.ForWriting)
+        End If
+    End Sub
+
+    Private Sub PrepareOperation(ByVal askExtractMode As Long) Implements IArchiveExtractCallback.PrepareOperation
+    	' Debug.Print "IArchiveExtractCallback::PrepareOperation", Timer
+        ' Debug.Print "   askExtractMode: ", askExtractMode
+        ' Debug.Print ""
+    End Sub
+
+    Private Sub SetOperationResult(ByVal opRes As Long) Implements IArchiveExtractCallback.SetOperationResult
+    	' Debug.Print "IArchiveExtractCallback::SetOperationResult", Timer
+        ' Debug.Print "   askExtractMode: ", opRes
+        ' Debug.Print ""
+    End Sub
+End Class

@@ -1,0 +1,8 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600A00000") ]
+Private Interface IOutArchive Extends stdole.IUnknown
+    'STDMETHOD(UpdateItems)(ISequentialOutStream *outStream, UInt32 numItems, IArchiveUpdateCallback *updateCallback) x; \
+    Sub UpdateItems(ByVal outStream As ISequentialOutStream, ByVal numItems As Long, ByVal updateCallback As IArchiveUpdateCallback)
+
+    'STDMETHOD(GetFileTimeType)(UInt32 *type) x;
+    Sub GetFileTimeType(ByRef type As Long)
+End Interface

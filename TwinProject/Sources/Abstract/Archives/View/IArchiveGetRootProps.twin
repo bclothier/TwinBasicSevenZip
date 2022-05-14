@@ -1,0 +1,8 @@
+[ InterfaceId ("23170F69-40C1-278A-0000-000600710000") ]
+Private Interface IArchiveGetRootProps Extends stdole.IUnknown
+    ' STDMETHOD(GetRootProp)(PROPID propID, PROPVARIANT *value) x; \
+    Sub GetRootProp(ByVal propID As Long, ByRef value As Variant)
+
+    ' STDMETHOD(GetRootRawProp)(PROPID propID, const void **data, UInt32 *dataSize, UInt32 *propType) x; \
+    Sub GetRootRawProp(ByVal propID As Long, ByRef data As LongPtr, ByRef dataSize As Long, ByRef propType As Long)
+End Interface

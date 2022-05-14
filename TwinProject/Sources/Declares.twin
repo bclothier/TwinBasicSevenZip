@@ -5,6 +5,107 @@ Private Module Declares
         Data3 As Integer
         Data4(0 To 7) As Byte
     End Type
+    
+    Public Type FILETIME
+        dwLowDateTime As Long
+        dwHighDateTime As Long
+    End Type
+
+    Public Type SYSTEMTIME
+        wYear  As Integer
+        wMonth As Integer
+        wDayOfWeek As Integer
+        wDay As Integer
+        wHour As Integer
+        wMinute As Integer
+        wSecond As Integer
+        wMilliseconds As Integer
+    End Type
+    
+    ' PSSTDAPI InitVariantFromFileTime(
+    '   [in]  const FILETIME *pft,
+    '   [out] VARIANT        *pvar
+    ' );
+    Public Declare PtrSafe Function InitVariantFromFileTime Lib "Propsys" ( _ 
+        ByRef pft As FILETIME, _
+        ByRef pvar As Variant _
+    ) As Long
+
+    Public Enum PSTIME_FLAGS
+        PSTF_UTC = 0
+        PSTF_LOCAL = 1
+    End Enum
+
+    ' PSSTDAPI PropVariantToFileTime(
+    '   [in]  REFPROPVARIANT propvar,
+    '   [in]  PSTIME_FLAGS   pstfOut,
+    '   [out] FILETIME       *pftOut
+    ' );
+    Public Declare PtrSafe Function PropVariantToFileTime Lib "Propsys" ( _
+        ByRef propvar As Variant, _
+        ByVal pstfOut As PSTIME_FLAGS, _ 
+        ByRef pftOut As FILETIME _ 
+    ) As Long
+
+    ' PSSTDAPI InitPropVariantFromFileTime(
+    '   [in]  const FILETIME *pftIn,
+    '   [out] PROPVARIANT    *ppropvar
+    ' );    
+    Public Declare PtrSafe Function InitPropVariantFromFileTime Lib "Propsys" ( _
+        ByRef pftIn As FILETIME, _
+        ByRef ppropvar As Variant _ 
+    ) As Long
+
+
+    ' PSSTDAPI PropVariantToVariant(
+    '   [in]  const PROPVARIANT *pPropVar,
+    '   [out] VARIANT           *pVar
+    ' );
+    Public Declare PtrSafe Function PropVariantToVariant Lib "Propsys" ( _ 
+        ByRef pPropVar As Variant, _ 
+        ByRef pVar As Variant _ 
+    ) As Long
+
+    ' PSSTDAPI VariantToPropVariant(
+    '   [in]  const VARIANT *pVar,
+    '   [out] PROPVARIANT   *pPropVar
+    ' );    
+    Public Declare PtrSafe Function VariantToPropVariant Lib "Propsys" ( _ 
+        ByRef pVar As Variant, _ 
+        ByRef pPropVar As Variant _ 
+    ) As Long
+
+    ' PSSTDAPI PropVariantChangeType(
+    '   [out] PROPVARIANT          *ppropvarDest,
+    '   [in]  REFPROPVARIANT       propvarSrc,
+    '   [in]  PROPVAR_CHANGE_FLAGS flags,
+    '   [in]  VARTYPE              vt
+    ' );
+    Public Declare PtrSafe Function PropVariantChangeType Lib "Propsys" ( _ 
+        ByRef ppropvarDest As Variant, _ 
+        ByRef propvarSrc As Variant, _ 
+        ByVal flags As Long, _
+        ByVal vt As Integer _
+    ) As Long
+
+    ' HRESULT PropVariantClear(
+    '   [in, out] PROPVARIANT *pvar
+    ' );
+    Public Declare PtrSafe Function PropVariantClear Lib "Ole32" ( _ 
+        ByRef pPropVar As Variant _ 
+    ) As Long
+
+    Public Type CStreamFileProps
+        Size As LongLong
+        VolID As LongLong
+        FileID_Low As LongLong
+        FileID_High As LongLong
+        NumLinks As Long
+        Attribs As Long
+        CTime As FILETIME
+        ATime As FILETIME
+        MTime As FILETIME
+    End Type
 
     ' HRESULT CLSIDFromString(
     '   [in]  LPCOLESTR lpsz,
@@ -28,15 +129,6 @@ Private Module Declares
     ' );
     Public DeclareWide PtrSafe Function FreeLibrary Lib "kernel32" (ByVal hLibModule As LongPtr) As Long
 
-    ' PSSTDAPI PropVariantToVariant(
-    '   [in]  const PROPVARIANT *pPropVar,
-    '   [out] VARIANT           *pVar
-    ' );
-    Public Declare PtrSafe Function PropVariantToVariant Lib "Propsys" ( _
-        ByVal pPropVar As LongPtr, _ 
-        ByVal pVar As LongPtr _ 
-    ) As Long
-    
     ' VOID RtlMoveMemory(
     '   _Out_       VOID UNALIGNED *Destination,
     '   _In_  const VOID UNALIGNED *Source,
@@ -44,6 +136,8 @@ Private Module Declares
     ' );
     Public Declare PtrSafe Sub RtlMoveMemory Lib "NtDll" (Destination As Any, Source As Any, ByVal Length As LongPtr)
     
+    Public Declare PtrSafe Function GetCurrentThreadId Lib "kernel32" () As Long
+
     'Zip file require using 7z.dll, not 7za.dll. 7z.dll is provided from a full install of 7-zip software
 	'STDAPI CreateObject(const GUID *clsid, const GUID *iid, void **outObject)
     Public Declare PtrSafe Function SevenZipFullCreateObject Lib "7z.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
