@@ -2,6 +2,21 @@ Public Module Constants
     ' Some of the contents here were derived from the SevenZipSharp project:
     ' https://github.com/squid-box/SevenZipSharp/tree/dev/SevenZip
     
+    Public Enum CommonHResults
+        S_OK = &H0
+        S_FALSE = &H1
+        E_ABORT = &H80004004
+        E_ACCESSDENIED = &H80070005
+        E_FAIL = &H80004005
+        E_HANDLE = &H80070006
+        E_INVALIDARG = &H80070057
+        E_NOINTERFACE = &H80004002
+        E_NOTIMPL = &H80004001
+        E_OUTOFMEMORY = &H8007000E
+        E_POINTER = &H80004003
+        E_UNEXPECTED = &H8000FFFF
+    End Enum
+
     Public Enum StreamSeekOrigin
     	SZ_SEEK_SET = 0
         SZ_SEEK_CUR = 1

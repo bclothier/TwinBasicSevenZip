@@ -9,25 +9,32 @@ Public Class ArchiveViewer
         InFileStream As Filestream
         Entries As ArchiveEntries
         Properties As ArchiveProperties
+        ProgressView As IProgressView
+        ArchiveFileSize As long
+        CurrentFiles As LongLong
+        CurrentBytes As LongLong
     End Type
     Private This As TData
 
-    Friend Sub New(ArchivePath As String)
+    Friend Sub New(ArchivePath As String, Optional ProgressView As IProgressView)
+        Set This.ProgressView = ProgressView
+        
         This.ArchivePath = ArchivePath
         Set This.InFileStream = New Filestream(This.ArchivePath, FileMode.ForReading)
         
         Set This.InArchive = Manager.CreateInArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
-
+        This.ArchiveFileSize = FSO.GetFile(This.ArchivePath).Size
+        SetupProgress()
         Dim ScanSize As LongLong = 8388608
         This.InArchive.Open This.InFileStream, ScanSize, Me
     End Sub
 
-    [ Hidden, Restricted ]
     Friend Property Get InArchive() As IInArchive
         Return This.InArchive
     End Property
 
     Private Sub SetTotal(ByRef files As LongLong, ByRef bytes As LongLong) Implements IArchiveOpenCallback.SetTotal
+        Err.ReturnHResult = UpdateProgress(files, bytes)
     	' Debug.Print "IArchiveOpenCallback::SetTotal", Timer
         ' Debug.Print "   files: ", If(VarPtr(files), files, "<NULL>")
         ' Debug.Print "   bytes: ", If(VarPtr(bytes), bytes, "<NULL>")
@@ -35,11 +42,53 @@ Public Class ArchiveViewer
     End Sub
     
     Private Sub SetCompleted(ByRef files As LongLong, ByRef bytes As LongLong) Implements IArchiveOpenCallback.SetCompleted
+        Err.ReturnHResult = UpdateProgress(files, bytes)
     	' Debug.Print "IArchiveOpenCallback::SetCompleted", Timer
         ' Debug.Print "   files: ", If(VarPtr(files), files, "<NULL>")
         ' Debug.Print "   bytes: ", If(VarPtr(bytes), bytes, "<NULL>")
         ' Debug.Print ""
     End Sub
+
+    Private Sub SetupProgress()
+        If This.ProgressView Is Nothing Then
+            Exit Sub
+        End If
+
+        With This.ProgressView
+            .ProgressValue = 0
+            .ProgressMax = This.ArchiveFileSize
+            If .Indeterminate Then
+                .Indeterminate = False
+            End If
+            .UpdateCaptions "Opening archive '" & FSO.GetFileName (This.ArchivePath) & "'"
+        End With
+    End Sub
+
+    Private Function UpdateProgress(Files As LongLong, Bytes As LongLong) As CommonHResults
+        If This.ProgressView Is Nothing Then
+            Return CommonHResults.S_OK
+        End If
+
+        With This.ProgressView
+            If .CancellationRequested Then
+                Return CommonHResults.E_ABORT
+            End If
+            If VarPtr(Files) Then
+                If Files > This.CurrentFiles OrElse Bytes > This.CurrentBytes Then
+                    This.CurrentFiles = Files
+                    .UpdateCaptions , This.CurrentFiles & " files read."
+                End If
+            End If
+            If VarPtr(Bytes) Then
+                If Bytes > This.CurrentBytes Then
+                    This.CurrentBytes = Bytes
+                    .UpdateProgress(CLng(This.CurrentBytes))
+                End If
+            End If
+        End With
+
+        Return CommonHResults.S_OK
+    End Function
 
     [ Description ("A list of files or folders present in the given archive files.") ]
     Public Property Get Entries() As ArchiveEntries

@@ -1,0 +1,3 @@
+Public Interface IProgressAble
+    Sub DoWork(ProgressView As IProgressView)
+End Interface

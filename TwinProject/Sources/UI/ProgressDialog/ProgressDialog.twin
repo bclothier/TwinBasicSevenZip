@@ -1,0 +1,163 @@
+[ Description ("") ]
+[ FormDesignerId ("955F3D0A-0E20-4817-BB58-CDB241FFB9E0") ]
+[ PredeclaredId ]
+Private Class ProgressDialog
+    Implements IProgressView
+
+    Private Type TData
+        AutoCloseOnMax As Boolean
+        Cancellable As Boolean
+    	CancellationRequested As Boolean
+        MayClose As Boolean
+    End Type
+    Private This As TData
+
+	Friend Sub New()
+        Debug.Print "New Enter"
+        Me.ProgressBar.Value = 0
+        Me.ProgressBar.Max = 100
+        Me.Timer.Interval = 100
+        Me.Timer.Enabled = True
+        Debug.Print "New Exit"
+	End Sub
+    
+    Private Sub AbortButton_Click() Handles AbortButton.Click
+        This.CancellationRequested = True
+        Me.AbortButton.Caption = "Aborting..."
+        Me.AbortButton.Enabled = False
+    End Sub
+
+    Private Property Get ProgressTextMajor() As String Implements IProgressView.ProgressTextMajor
+    	Return Me.MainLabel.Caption
+    End Property
+
+    Private Property Let ProgressTextMajor(NewValue As String) Implements IProgressView.ProgressTextMajor
+        Me.MainLabel.Caption = NewValue
+    End Property
+    
+    Private Property Get ProgressTextMinor() As String Implements IProgressView.ProgressTextMinor
+        Return Me.SubLabel.Caption
+    End Property
+
+    Private Property Let ProgressTextMinor(NewValue As String) Implements IProgressView.ProgressTextMinor
+        Me.SubLabel.Caption = NewValue
+    End Property
+    
+    Private Property Get TitleCaption() As String Implements IProgressView.TitleCaption
+    	Return Me.Caption
+    End Property
+
+    Private Property Let TitleCaption(NewValue As String) Implements IProgressView.TitleCaption
+        Me.Caption = NewValue
+    End Property
+
+    Private Property Get Indeterminate() As Boolean Implements IProgressView.Indeterminate
+        Return Me.MarqueeProgressBar.Enabled
+    End Property
+
+    Private Property Let Indeterminate(NewValue As Boolean) Implements IProgressView.Indeterminate
+        Me.MarqueeProgressBar.Enabled = NewValue
+        Me.MarqueeProgressBar.Visible = NewValue
+        Me.ProgressBar.Enabled = Not NewValue
+        Me.ProgressBar.Visible = Not NewValue
+    End Property
+
+    Private Property Get AutoCloseOnMax() As Boolean Implements IProgressView.AutoCloseOnMax
+    	Return This.AutoCloseOnMax
+    End Property
+
+    Private Property Let AutoCloseOnMax(NewValue As Boolean) Implements IProgressView.AutoCloseOnMax
+    	This.AutoCloseOnMax = NewValue
+    End Property
+
+    Private Property Get ProgressValue() As Long Implements IProgressView.ProgressValue
+        Return Me.ProgressBar.Value
+    End Property
+
+    Private Property Let ProgressValue(NewValue As Long) Implements IProgressView.ProgressValue
+    	Me.ProgressBar.Value = NewValue
+    End Property
+
+    Private Property Get ProgressMax() As Long Implements IProgressView.ProgressMax
+        Return Me.ProgressBar.Max
+    End Property
+
+    Private Property Let ProgressMax(NewValue As Long) Implements IProgressView.ProgressMax
+    	Me.ProgressBar.Max = NewValue
+    End Property
+
+    Private Property Get Cancellable() As Boolean Implements IProgressView.Cancellable
+        Return This.Cancellable
+    End Property
+
+    Private Property Let Cancellable(NewValue As Boolean) Implements IProgressView.Cancellable
+    	This.Cancellable = NewValue
+    End Property
+
+    Private Property Get CancellationRequested() As Boolean Implements IProgressView.CancellationRequested
+    	Return This.CancellationRequested
+    End Property
+
+    Private Property Get Handle() As LongPtr Implements IProgressView.Handle
+        Return Me.hWnd
+    End Property
+
+    Private Sub UpdateProgress( _
+        Value As Long, _  
+        Optional Max As Long _
+    ) Implements IProgressView.UpdateProgress
+        Me.ProgressBar.Value = Value
+        If Max Then
+            Me.ProgressBar.Max = Max
+        End If
+        If This.AutoCloseOnMax AndAlso (Me.ProgressBar.Value >= Me.ProgressBar.Max) Then
+            CloseDialog()
+        End If
+    End Sub
+
+    Private Sub UpdateCaptions( _
+        Optional MajorCaption As String, _ 
+        Optional MinorCaption As String _
+    ) Implements IProgressView.UpdateCaptions
+        If Len(MajorCaption) Then
+            Me.MainLabel.Caption = MajorCaption
+        End If
+        If Len(MinorCaption) Then
+            Me.SubLabel.Caption = MinorCaption
+        End If
+    End Sub
+
+    Private Sub ClearCaptions() Implements IProgressView.ClearCaptions
+        Me.MainLabel.Caption = vbNullString
+        Me.SubLabel.Caption = vbNullString
+    End Sub
+
+    Private Sub ShowDialog() Implements IProgressView.Show
+        Me.Show
+    End Sub
+
+    Private Sub CloseDialog() Implements IProgressView.Close
+        This.MayClose = True
+        Me.Close
+    End Sub
+
+    Private Sub RefreshForm() Implements IProgressView.Refresh
+        Debug.Print "IProgressView::Refresh called"
+        Me.Refresh
+    End Sub
+    
+    Private Sub Timer_Timer() Handles Timer.Timer
+        Debug.Print "Timer event enter"
+        Me.Timer.Interval = 0
+        Me.Timer.Enabled = False
+        ProgressFactory.ProgressViewShowCallback
+    End Sub
+    
+    Private Sub Unload(Cancel As Integer) Handles Form.Unload
+        If This.MayClose = False _
+        AndAlso This.CancellationRequested = False Then
+            AbortButton_Click()
+            Cancel = True
+        End If
+    End Sub
+End Class

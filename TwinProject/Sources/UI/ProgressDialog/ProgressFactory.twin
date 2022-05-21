@@ -1,0 +1,573 @@
+Private Module ProgressFactory
+	Private Enum WindowMessages
+		WM_APP = 32768
+		WM_ACTIVATE = 6
+		WM_ACTIVATEAPP = 28
+		WM_AFXFIRST = 864
+		WM_AFXLAST = 895
+		WM_ASKCBFORMATNAME = 780
+		WM_CANCELJOURNAL = 75
+		WM_CANCELMODE = 31
+		WM_CAPTURECHANGED = 533
+		WM_CHANGECBCHAIN = 781
+		WM_CHAR = 258
+		WM_CHARTOITEM = 47
+		WM_CHILDACTIVATE = 34
+		WM_CLEAR = 771
+		WM_CLOSE = 16
+		WM_COMMAND = 273
+		WM_COMMNOTIFY = 68 'OBSOLETE
+		WM_COMPACTING = 65
+		WM_COMPAREITEM = 57
+		WM_CONTEXTMENU = 123
+		WM_COPY = 769
+		WM_COPYDATA = 74
+		WM_CREATE = 1
+		WM_CTLCOLORBTN = 309
+		WM_CTLCOLORDLG = 310
+		WM_CTLCOLOREDIT = 307
+		WM_CTLCOLORLISTBOX = 308
+		WM_CTLCOLORMSGBOX = 306
+		WM_CTLCOLORSCROLLBAR = 311
+		WM_CTLCOLORSTATIC = 312
+		WM_CUT = 768
+		WM_DEADCHAR = 259
+		WM_DELETEITEM = 45
+		WM_DESTROY = 2
+		WM_DESTROYCLIPBOARD = 775
+		WM_DEVICECHANGE = 537
+		WM_DEVMODECHANGE = 27
+		WM_DISPLAYCHANGE = 126
+		WM_DRAWCLIPBOARD = 776
+		WM_DRAWITEM = 43
+		WM_DROPFILES = 563
+		WM_ENABLE = 10
+		WM_ENDSESSION = 22
+		WM_ENTERIDLE = 289
+		WM_ENTERMENULOOP = 529
+		WM_ENTERSIZEMOVE = 561
+		WM_ERASEBKGND = 20
+		WM_EXITMENULOOP = 530
+		WM_EXITSIZEMOVE = 562
+		WM_FONTCHANGE = 29
+		WM_GETDLGCODE = 135
+		WM_GETFONT = 49
+		WM_GETHOTKEY = 51
+		WM_GETICON = 127
+		WM_GETMINMAXINFO = 36
+		WM_GETTEXT = 13
+		WM_GETTEXTLENGTH = 14
+		WM_HANDHELDFIRST = 856
+		WM_HANDHELDLAST = 863
+		WM_HELP = 83
+		WM_HOTKEY = 786
+		WM_HSCROLL = 276
+		WM_HSCROLLCLIPBOARD = 782
+		WM_ICONERASEBKGND = 39
+		WM_INITDIALOG = 272
+		WM_INITMENU = 278
+		WM_INITMENUPOPUP = 279
+		WM_INPUT = &H00FF
+		WM_INPUTLANGCHANGE = 81
+		WM_INPUTLANGCHANGEREQUEST = 80
+		WM_KEYDOWN = 256
+		WM_KEYUP = 257
+		WM_KILLFOCUS = 8
+		WM_MDIACTIVATE = 546
+		WM_MDICASCADE = 551
+		WM_MDICREATE = 544
+		WM_MDIDESTROY = 545
+		WM_MDIGETACTIVE = 553
+		WM_MDIICONARRANGE = 552
+		WM_MDIMAXIMIZE = 549
+		WM_MDINEXT = 548
+		WM_MDIREFRESHMENU = 564
+		WM_MDIRESTORE = 547
+		WM_MDISETMENU = 560
+		WM_MDITILE = 550
+		WM_MEASUREITEM = 44
+		WM_GETOBJECT = &H003D
+		WM_CHANGEUISTATE = &H0127
+		WM_UPDATEUISTATE = &H0128
+		WM_QUERYUISTATE = &H0129
+		WM_UNINITMENUPOPUP = &H0125
+		WM_MENURBUTTONUP = 290
+		WM_MENUCOMMAND = &H0126
+		WM_MENUGETOBJECT = &H0124
+		WM_MENUDRAG = &H0123
+		WM_APPCOMMAND = &H0319
+		WM_MENUCHAR = 288
+		WM_MENUSELECT = 287
+		WM_MOVE = 3
+		WM_MOVING = 534
+		WM_NCACTIVATE = 134
+		WM_NCCALCSIZE = 131
+		WM_NCCREATE = 129
+		WM_NCDESTROY = 130
+		WM_NCHITTEST = 132
+		WM_NCLBUTTONDBLCLK = 163
+		WM_NCLBUTTONDOWN = 161
+		WM_NCLBUTTONUP = 162
+		WM_NCMBUTTONDBLCLK = 169
+		WM_NCMBUTTONDOWN = 167
+		WM_NCMBUTTONUP = 168
+		WM_NCXBUTTONDOWN = 171
+		WM_NCXBUTTONUP = 172
+		WM_NCXBUTTONDBLCLK = 173
+		WM_NCMOUSEHOVER = &H02A0
+		WM_NCMOUSELEAVE = &H02A2
+		WM_NCMOUSEMOVE = 160
+		WM_NCPAINT = 133
+		WM_NCRBUTTONDBLCLK = 166
+		WM_NCRBUTTONDOWN = 164
+		WM_NCRBUTTONUP = 165
+		WM_NEXTDLGCTL = 40
+		WM_NEXTMENU = 531
+		WM_NOTIFY = 78
+		WM_NOTIFYFORMAT = 85
+		WM_NULL = 0
+		WM_PAINT = 15
+		WM_PAINTCLIPBOARD = 777
+		WM_PAINTICON = 38
+		WM_PALETTECHANGED = 785
+		WM_PALETTEISCHANGING = 784
+		WM_PARENTNOTIFY = 528
+		WM_PASTE = 770
+		WM_PENWINFIRST = 896
+		WM_PENWINLAST = 911
+		WM_POWER = 72
+		WM_POWERBROADCAST = 536
+		WM_PRINT = 791
+		WM_PRINTCLIENT = 792
+		WM_QUERYDRAGICON = 55
+		WM_QUERYENDSESSION = 17
+		WM_QUERYNEWPALETTE = 783
+		WM_QUERYOPEN = 19
+		WM_QUEUESYNC = 35
+		WM_QUIT = 18
+		WM_RENDERALLFORMATS = 774
+		WM_RENDERFORMAT = 773
+		WM_SETCURSOR = 32
+		WM_SETFOCUS = 7
+		WM_SETFONT = 48
+		WM_SETHOTKEY = 50
+		WM_SETICON = 128
+		WM_SETREDRAW = 11
+		WM_SETTEXT = 12
+		WM_SETTINGCHANGE = 26
+		WM_SHOWWINDOW = 24
+		WM_SIZE = 5
+		WM_SIZECLIPBOARD = 779
+		WM_SIZING = 532
+		WM_SPOOLERSTATUS = 42
+		WM_STYLECHANGED = 125
+		WM_STYLECHANGING = 124
+		WM_SYSCHAR = 262
+		WM_SYSCOLORCHANGE = 21
+		WM_SYSCOMMAND = 274
+		WM_SYSDEADCHAR = 263
+		WM_SYSKEYDOWN = 260
+		WM_SYSKEYUP = 261
+		WM_TCARD = 82
+		WM_THEMECHANGED = 794
+		WM_TIMECHANGE = 30
+		WM_TIMER = 275
+		WM_UNDO = 772
+		WM_USER = 1024
+		WM_USERCHANGED = 84
+		WM_VKEYTOITEM = 46
+		WM_VSCROLL = 277
+		WM_VSCROLLCLIPBOARD = 778
+		WM_WINDOWPOSCHANGED = 71
+		WM_WINDOWPOSCHANGING = 70
+		WM_WININICHANGE = 26
+		WM_KEYFIRST = 256
+		WM_KEYLAST = 264
+		WM_SYNCPAINT = 136
+		WM_MOUSEACTIVATE = 33
+		WM_MOUSEMOVE = 512
+		WM_LBUTTONDOWN = 513
+		WM_LBUTTONUP = 514
+		WM_LBUTTONDBLCLK = 515
+		WM_RBUTTONDOWN = 516
+		WM_RBUTTONUP = 517
+		WM_RBUTTONDBLCLK = 518
+		WM_MBUTTONDOWN = 519
+		WM_MBUTTONUP = 520
+		WM_MBUTTONDBLCLK = 521
+		WM_MOUSEWHEEL = 522
+		WM_MOUSEFIRST = 512
+		WM_XBUTTONDOWN = 523
+		WM_XBUTTONUP = 524
+		WM_XBUTTONDBLCLK = 525
+		WM_MOUSELAST = 526
+		WM_MOUSEHOVER = &H2A1
+		WM_MOUSELEAVE = &H2A3
+		WM_CLIPBOARDUPDATE = &H031D
+	End Enum
+
+    ' typedef struct tagPOINT {
+    '   LONG x;
+    '   LONG y;
+    ' } POINT, *PPOINT;	
+	Private Type POINT
+		x As Long
+		y As Long
+	End Type
+	
+    ' typedef struct tagRECT {
+    '   LONG left;
+    '   LONG top;
+    '   LONG right;
+    '   LONG bottom;
+    ' } RECT, *PRECT, *NPRECT, *LPRECT;
+	Private Type RECT
+		left As Long
+		top As Long
+		right As Long
+		bottom As Long
+	End Type
+
+    ' typedef struct tagMSG {
+    '   HWND   hwnd;
+    '   UINT   message;
+    '   WPARAM wParam;
+    '   LPARAM lParam;
+    '   DWORD  time;
+    '   POINT  pt;
+    '   DWORD  lPrivate;
+    ' } MSG, *PMSG, *NPMSG, *LPMSG;
+	Private Type MSG
+		hWnd As LongPtr
+		message As Long
+		wParam As LongPtr
+		lParam As LongPtr
+		time As Long
+		pt As POINT
+		lPrivate As Long
+	End Type
+
+	Private Type INITCOMMONCONTROLSEX
+		dwSize As Long
+		dwICC As Long
+	End Type
+
+    'BOOL InitCommonControlsEx(
+    '  const INITCOMMONCONTROLSEX *picce
+    ');
+	Private DeclareWide PtrSafe Function InitCommonControlsEx _
+	Lib "ComCtl32" ( _
+		ByRef picce As INITCOMMONCONTROLSEX _
+	) As Boolean
+
+    ' BOOL PostMessageA(
+    '   HWND   hWnd,
+    '   UINT   Msg,
+    '   WPARAM wParam,
+    '   LPARAM lParam
+    ' );
+	Private DeclareWide PtrSafe Function PostMessage _
+	Lib "User32" Alias "PostMessageW" ( _
+		ByVal hWnd As LongPtr, _
+		ByVal Msg As Long, _
+		ByVal wParam As LongPtr, _ 
+		ByVal lParam As LongPtr _
+	) As Boolean
+
+    ' BOOL GetMessage(
+    '   LPMSG lpMsg,
+    '   HWND  hWnd,
+    '   UINT  wMsgFilterMin,
+    '   UINT  wMsgFilterMax
+    ' );
+	Private DeclareWide PtrSafe Function GetMessage _
+	Lib "User32" Alias "GetMessageW" ( _ 
+		lpMsg As MSG, _
+		ByVal hWnd As LongPtr, _
+		ByVal wMsgFilterMin As Long, _
+		ByVal wMsgFilterMax As Long _
+	) As Long 'Even though the return is documented as "BOOL", there is a difference between the value 0 and -1 and other values, so we need to make distinction between those 3 values.
+	
+    ' LRESULT DispatchMessage(
+    '   const MSG *lpMsg
+    ' );	
+	Private DeclareWide PtrSafe Function DispatchMessage _
+	Lib "User32" Alias "DispatchMessageW" ( _
+		lpMsg As MSG _
+	) As LongPtr
+	
+    ' BOOL TranslateMessage(
+    '   const MSG *lpMsg
+    ' );
+	Private DeclareWide PtrSafe Function TranslateMessage _
+	Lib "User32" ( _
+		lpMsg As MSG _
+	) As Boolean
+	
+    ' void PostQuitMessage(
+    '   int nExitCode
+    ' );
+	Private DeclareWide PtrSafe Sub PostQuitMessage _
+	Lib "User32" ( _
+		ByVal nExitCode As Long _
+	)
+	
+    ' LRESULT LRESULT DefWindowProcA(
+    '   HWND   hWnd,
+    '   UINT   Msg,
+    '   WPARAM wParam,
+    '   LPARAM lParam
+    ' );
+	Private DeclareWide PtrSafe Function DefWindowProc _
+	Lib "User32" Alias "DefWindowProcW" ( _
+		ByVal hWnd As LongPtr, _
+		ByVal Msg As Long, _
+		ByVal wParam As LongPtr, _
+		ByVal lParam As LongPtr _
+	) As LongPtr
+	
+    ' LRESULT CallWindowProc()
+    '   WNDPROC lpPrevWndFunc,
+    '   HWND    hWnd,
+    '   UINT    Msg,
+    '   WPARAM  wParam,
+    '   LPARAM  lParam
+    ' );	
+	Private DeclareWide PtrSafe Function CallWindowProc _
+	Lib "User32" Alias "CallWindowProcW" ( _
+		ByVal lpPrevWndFunc As LongPtr, _
+		ByVal hWnd As LongPtr, _
+		ByVal msg As Long, _
+		ByVal wParam As LongPtr, _
+		ByVal lParam As LongPtr _
+	) As LongPtr
+	
+    ' BOOL SendNotifyMessage(
+    '   HWND   hWnd,
+    '   UINT   Msg,
+    '   WPARAM wParam,
+    '   LPARAM lParam
+    ' );
+	Private DeclareWide PtrSafe Function SendNotifyMessage _
+	Lib "User32" Alias "SendNotifyMessageW" ( _
+		ByVal hWnd As LongPtr, _
+		ByVal Msg As Long, _
+		ByVal wParam As LongPtr, _
+		ByVal lParam As LongPtr _
+	) As Boolean
+
+    ' HANDLE CreateThread (
+    ' 	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+    ' 	SIZE_T dwStackSize,
+    ' 	LPTHREAD_START_ROUTINE lpStartAddress,
+    '   __drv_aliasesMem LPVOID lpParameter,
+    ' 	DWORD dwCreationFlags,
+    ' 	LPDWORD lpThreadId
+    ' );
+	Private DeclareWide PtrSafe Function CreateThread _
+	Lib "Kernel32" ( _
+		ByVal lpthreadAttributes As LongPtr, _
+		ByVal dwStackSize As LongPtr, _
+		ByVal lpStartAddress As LongPtr, _
+		ByVal lpParameter As LongPtr, _
+		ByVal dwCreationFlags As Long, _
+		ByRef lpThreadId As Long _
+	) As LongPtr
+
+    ' BOOL CloseHandle (
+    ' 	  HANDLE hObject
+    ' );
+	Private DeclareWide PtrSafe Function CloseHandle _
+	Lib "Kernel32" ( _
+		ByVal hObject As LongPtr _
+	) As Boolean
+
+    ' HRESULT CoInitializeEx(
+    '   [in, optional] LPVOID pvReserved,
+    '   [in]           DWORD  dwCoInit
+    ' );
+    Private Enum COINIT
+        COINIT_APARTMENTTHREADED = &H2
+        COINIT_MULTITHREADED = &H0
+        COINIT_DISABLE_OLE1DDE = &H4
+        COINIT_SPEED_OVER_MEMORY = &H8
+    End Enum
+
+    Private Declare PtrSafe Function CoInitializeEx Lib "ole32" ( _
+        ByVal pvReserved As LongPtr, _ 
+        ByVal dwCoInit As COINIT _ 
+    ) As Long
+
+    ' void CoUninitialize();
+    Private Declare PtrSafe Sub CoUninitialize Lib "ole32" ()
+
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+
+    ' LONG_PTR SetWindowLongPtrW(
+    '   [in] HWND     hWnd,
+    '   [in] int      nIndex,
+    '   [in] LONG_PTR dwNewLong
+    ' );
+    Private DeclareWide PtrSafe Function SetWindowLongPtrW Lib "user32" ( _ 
+        ByVal hWnd As LongPtr, _ 
+        ByVal nIndex As Long, _ 
+        ByVal dwNewLong As LongPtr _ 
+    ) As LongPtr
+
+    Private Type TSharedThreadData
+        ProgressView As IProgressView
+    	Progressable As IProgressAble
+        WorkThreadAddress As LongPtr
+        WorkThreadHandle As LongPtr
+        WorkThreadId As Long
+        UiThreadAddress As LongPtr
+        UiThreadHandle As LongPtr
+        UiThreadId As Long
+        PumpThreadAddress As LongPtr
+        PumpThreadHandle As LongPtr
+        PumpThreadId As Long
+    End Type
+    Private SharedThreadData As TSharedThreadData
+
+    Public Sub Create(Worker As IProgressAble)
+        If SharedThreadData.WorkThreadHandle Then
+            Err.Raise 5, CurrentComponentName, "Cannot create more than one active progress thread."
+        End If
+
+        Set SharedThreadData.Progressable = Worker
+
+        SharedThreadData.WorkThreadAddress = AddressOf ExecuteDoWork
+        SharedThreadData.UiThreadAddress = AddressOf ShowProgressView
+        SharedThreadData.PumpThreadAddress = AddressOf MessagePump
+
+        SharedThreadData.PumpThreadHandle = CreateThread(&H0, &H0, SharedThreadData.PumpThreadAddress, &H0, &H0, SharedThreadData.PumpThreadId)
+    End Sub
+
+    Private Function MessagePump(ByVal Ignored As LongPtr) As Long
+        On Error GoTo ErrHandler
+
+        CoInitializeEx(&H0, COINIT.COINIT_MULTITHREADED)
+        Debug.Print "MessagePump Start"
+
+        Set SharedThreadData.ProgressView = New ProgressDialog()
+
+        If SharedThreadData.PumpThreadAddress _
+        AndAlso SharedThreadData.ProgressView IsNot Nothing _
+        AndAlso SharedThreadData.Progressable IsNot Nothing Then
+            Debug.Print "Starting ui thread"
+            SharedThreadData.UiThreadHandle = CreateThread(&H0, &H0, SharedThreadData.UiThreadAddress, &H0, &H0, SharedThreadData.UiThreadId)
+        End If
+
+		Dim msg As MSG
+		Dim res As Long
+		Do Until SharedThreadData.UiThreadHandle = 0
+            res = GetMessage(msg, 0, 0, 0)
+			' Debug.Print "MessagePump: res: " & res & ", msg.Message: " & msg.message
+			If res = 0 Then
+				Exit Do
+			ElseIf res < 0 Then
+				MsgBox "An error occurred and program must be terminaed abnormally"
+				End
+			End If
+			
+			Select Case msg.message
+				Case WindowMessages.WM_QUIT, WindowMessages.WM_CLOSE, WindowMessages.WM_DESTROY
+                    Exit Do
+			End Select
+		
+            ' Debug.Print "Refreshing"
+            ' If SharedThreadData.ProgressView IsNot Nothing Then
+            '     SharedThreadData.ProgressView.Refresh
+            ' End If
+            ' Debug.Print "Refreshed"
+			TranslateMessage msg
+			DispatchMessage msg
+		Loop
+
+        Debug.Print "Message End of Loop"
+
+    ExitProc:
+        If SharedThreadData.PumpThreadHandle Then
+        	CloseHandle SharedThreadData.PumpThreadHandle
+            SharedThreadData.PumpThreadHandle = 0
+            SharedThreadData.PumpThreadId = 0
+        End If
+
+        CoUninitialize()
+        Debug.Print "Message Pump Exit"
+
+        Exit Function
+
+    ErrHandler:
+        MsgBox "Error:       " & Err.Number & vbNewLine & _
+               "Description: " & Err.Description & vbNewLine & _
+               "Source:      " & Err.Source & _
+               "Procedure:   " & CurrentProcedureName
+        Resume ExitProc
+    End Function
+
+    Private Function ShowProgressView(ByVal Ignored As LongPtr) As Long
+        On Error GoTo ErrHandler
+
+    	SharedThreadData.ProgressView.Show
+
+    ExitProc:
+        If SharedThreadData.UiThreadHandle Then
+        	CloseHandle SharedThreadData.UiThreadHandle
+            SharedThreadData.UiThreadHandle = 0
+            SharedThreadData.UiThreadId = 0
+            Set SharedThreadData.ProgressView = Nothing
+        End If
+
+        Exit Function
+
+    ErrHandler:
+        MsgBox "Error:       " & Err.Number & vbNewLine & _
+               "Description: " & Err.Description & vbNewLine & _
+               "Source:      " & Err.Source & _
+               "Procedure:   " & CurrentProcedureName
+        Resume ExitProc
+    End Function
+
+    [ Description ("Should be called by the IProgressView implementation when the IProgressView.Show has been called.") ]
+    Public Sub ProgressViewShowCallback()
+        On Error GoTo ErrHandler
+        If SharedThreadData.WorkThreadAddress _
+        AndAlso SharedThreadData.ProgressView IsNot Nothing _
+        AndAlso SharedThreadData.Progressable IsNot Nothing Then
+            SharedThreadData.WorkThreadHandle = CreateThread(&H0, &H0, SharedThreadData.WorkThreadAddress, &H0, &H0, SharedThreadData.WorkThreadId)
+        End If
+
+    ExitProc:
+        Exit Sub
+    
+    ErrHandler:
+        MsgBox "Error:       " & Err.Number & vbNewLine & _
+               "Description: " & Err.Description & vbNewLine & _
+               "Source:      " & Err.Source & _
+               "Procedure:   " & CurrentProcedureName
+        Resume ExitProc
+    End Sub
+
+    Private Function ExecuteDoWork(ByVal Ignored As LongPtr) As Long
+        On Error GoTo ErrHandler
+
+        SharedThreadData.Progressable.DoWork(SharedThreadData.ProgressView)
+        
+    ExitProc:
+        SharedThreadData.ProgressView.Close
+        If SharedThreadData.WorkThreadHandle Then
+        	CloseHandle SharedThreadData.WorkThreadHandle
+            SharedThreadData.WorkThreadHandle = 0
+            SharedThreadData.WorkThreadId = 0
+            Set SharedThreadData.Progressable = Nothing
+        End If
+
+    ErrHandler:
+        MsgBox "Error:       " & Err.Number & vbNewLine & _
+               "Description: " & Err.Description & vbNewLine & _
+               "Source:      " & Err.Source & _
+               "Procedure:   " & CurrentProcedureName
+        Resume ExitProc
+    End Function
+End Module

@@ -8,30 +8,46 @@ Public Class ArchiveExtractor
     	ArchivePath As String
         InArchive As IInArchive
         InFileStream As Filestream
-        DestinatinoPath As String
+        DestinationPath As String
+        ProgressView As IProgressView
     End Type
     Private This As TData
 
-    Public Sub New(ArchivePath As String)
+    Public Sub New(ArchivePath As String, Optional ProgressView As IProgressView)
+        Set This.ProgressView = ProgressView
         This.ArchivePath = ArchivePath
-        Set Viewer = New ArchiveViewer(This.ArchivePath)
+        Set Viewer = New ArchiveViewer(This.ArchivePath, This.ProgressView)
         Set This.InArchive = Viewer.InArchive
     End Sub
 
     [ Description ("Performs the extraction into the destination. The destination must be a folder. If the folder does not exist, it will be created automatically.") ]
     Public Sub Extract(DestinationPath As String)
-        CheckAndCreateMissingSubFolders(DestinationPath)
-        This.DestinatinoPath = DestinationPath
+        This.DestinationPath = DestinationPath
+        CheckAndCreateMissingSubFolders(This.DestinationPath)
         This.InArchive.Extract(0, -1, False, Me)
     End Sub
-
+    
     Private Sub SetTotal(ByVal total As LongLong) Implements IArchiveExtractCallback.SetTotal
+        ' If VarPtr(total) = 0 Then
+        '     Exit Sub
+        ' End If
+        ' If UpdateProgress(BytesTotal:=CLng(total)) = False Then
+        '     Err.ReturnHResult = CommonHResults.E_ABORT
+        '     Exit Sub
+        ' End If
     	' Debug.Print "IArchiveExtractCallback::SetTotal", Timer
         ' Debug.Print "   total: ", If(VarPtr(total), total, "<NULL>")
         ' Debug.Print ""
     End Sub
     
     Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IArchiveExtractCallback.SetCompleted
+        ' If VarPtr(completeValue) = 0 Then
+        '     Exit Sub
+        ' End If
+        ' If UpdateProgress(BytesCompleted:=CLng(completeValue)) = False Then
+        '     Err.ReturnHResult = CommonHResults.E_ABORT
+        '     Exit Sub
+        ' End If
     	' Debug.Print "IArchiveExtractCallback::SetCompleted", Timer
         ' Debug.Print "   completeValue: ", If(VarPtr(completeValue), completeValue, "<NULL>")
         ' Debug.Print ""
@@ -47,10 +63,10 @@ Public Class ArchiveExtractor
             This.InArchive.GetProperty(index, ItemPropId.Name, ItemName)
         End If
 
-        If Len(ItemName) = 0 Then
-            Dim Count As Long
-            This.InArchive.GetNumberOfItems(Count)
+        Dim Count As Long
+        This.InArchive.GetNumberOfItems(Count)
             
+        If Len(ItemName) = 0 Then
             Dim Extension As String = "." & FSO.GetExtensionName(This.ArchivePath)
             Dim FileName As String = FSO.GetFileName(This.ArchivePath)
 
@@ -65,7 +81,7 @@ Public Class ArchiveExtractor
             End If
         End If
 
-        Dim FullPath As String = FSO.BuildPath(This.DestinatinoPath, ItemName)
+        Dim FullPath As String = FSO.BuildPath(This.DestinationPath, ItemName)
 
         If askExtractMode = AskMode.Extract Then
             Dim IsDirectory As Variant
@@ -75,6 +91,12 @@ Public Class ArchiveExtractor
                 This.InArchive.GetProperty(index, ItemPropId.Attributes, EntryAttributes)
                 IsDirectory = (EntryAttributes And vbDirectory) = vbDirectory
             End If
+
+            If UpdateProgress(index, Count, ItemName:=FSO.GetFileName(FullPath)) = False Then
+                Err.ReturnHResult = CommonHResults.E_ABORT
+                Exit Sub
+            End If
+
             If IsDirectory AndAlso Not FSO.FolderExists(FullPath) Then
                 CheckAndCreateMissingSubFolders(FullPath)
             End If
@@ -94,4 +116,77 @@ Public Class ArchiveExtractor
         ' Debug.Print "   askExtractMode: ", opRes
         ' Debug.Print ""
     End Sub
+
+    Private Sub SetupProgress()
+        If This.ProgressView Is Nothing Then
+            Exit Sub
+        End If
+
+        With This.ProgressView
+            .ProgressValue = 0
+            Dim ItemsCount As Long
+            This.InArchive.GetNumberOfItems(ItemsCount)
+            .ProgressMax = ItemsCount
+            If .Indeterminate Then
+                .Indeterminate = False
+            End If
+            .UpdateCaptions "Extracting archive '" & FSO.GetFileName (This.ArchivePath) & "'"
+        End With
+    End Sub
+
+    Private Function UpdateProgress( _
+        Optional BytesCompleted As Long, _ 
+        Optional BytesTotal As Long, _ 
+        Optional ItemName As String _
+    ) As Boolean
+        Static Processed As Long
+        Static Total As Long
+        Static DisplayName As String
+        Dim UpdateNeeded As Boolean
+
+        If This.ProgressView Is Nothing Then
+            Return True
+        End If
+
+        With This.ProgressView
+            If .CancellationRequested Then
+                Return False
+            End If
+        
+            If BytesTotal _ 
+            AndAlso BytesTotal > Total Then
+                Total = BytesTotal
+                UpdateNeeded = True
+            End If
+
+            If BytesCompleted _ 
+            AndAlso BytesCompleted > Processed Then
+                Processed = BytesCompleted
+                UpdateNeeded = True
+            End If
+
+            If Len(ItemName) > 0 _
+            AndAlso ItemName <> DisplayName Then
+                DisplayName = ItemName
+                UpdateNeeded = True
+            End If
+
+            If .CancellationRequested Then
+                Return False
+            End If
+
+            If UpdateNeeded Then
+                .UpdateCaptions _
+                    "Extracting " & DisplayName, _
+                    "Processed " & Processed & " out of " & Total & " files."
+                .UpdateProgress(Processed, Total)
+            End If
+
+            If .CancellationRequested Then
+                Return False
+            End If
+        End With
+        
+        Return True
+    End Function
 End Class

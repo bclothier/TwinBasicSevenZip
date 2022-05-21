@@ -1,6 +1,19 @@
-[ PredeclaredId (True) ]
 [ Description ("Create new objects and guarantees proper initialization of the library before using the objects. To use a specific 7-zip DLL file, you must call the ArchiveLibPath first before creating any objects.") ]
 Public Class ArchiveFactory
+    Implements IProgressAble
+
+    Private Enum AsyncOperationMode
+    	DoExtract
+        DoCompress
+    End Enum
+
+    Private Type TData
+        OperationMode As AsyncOperationMode
+        ArchivePath As String
+        DestinationFolder As String
+    End Type
+    Private This As TData
+
     [ Description ("Get the path to the dependent 7-Zip DLL library (e.g. 7z.dll, 7za.dll or 7zxa.dll) used by the 7-Zip COM library.") ]
     Public Property Get ArchiveLibPath() As String
         Return Objects.LibPath
@@ -32,5 +45,21 @@ Public Class ArchiveFactory
     [ Description ("Release all resources for the library as a aid in cleanup.") ]
     Public Sub ReleaseArchiveLib()
         Objects.Release
+    End Sub
+
+    Public Sub ExtractAsync(ArchivePath As String, DestinationFolder As String)
+        Objects.Init()
+        This.ArchivePath = ArchivePath
+        This.DestinationFolder = DestinationFolder
+        ProgressFactory.Create(Me)
+    End Sub
+
+    Private Sub DoWork(ProgressView As IProgressView) Implements IProgressAble.DoWork
+    	Select Case This.OperationMode
+            Case AsyncOperationMode.DoExtract
+                With New ArchiveExtractor(This.ArchivePath, ProgressView)
+                    .Extract(This.DestinationFolder)
+                End With
+        End Select
     End Sub
 End Class
