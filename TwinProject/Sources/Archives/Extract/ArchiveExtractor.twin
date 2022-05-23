@@ -10,6 +10,9 @@ Public Class ArchiveExtractor
         InFileStream As Filestream
         DestinationPath As String
         ProgressView As IProgressView
+        Processed As Long
+        Total As Long
+        DisplayName As String
     End Type
     Private This As TData
 
@@ -18,6 +21,12 @@ Public Class ArchiveExtractor
         This.ArchivePath = ArchivePath
         Set Viewer = New ArchiveViewer(This.ArchivePath, This.ProgressView)
         Set This.InArchive = Viewer.InArchive
+    End Sub
+
+    Private Sub Class_Terminate()
+        Set This.ProgressView = Nothing
+        Set This.InFileStream = Nothing
+    	Set This.InArchive = Nothing
     End Sub
 
     [ Description ("Performs the extraction into the destination. The destination must be a folder. If the folder does not exist, it will be created automatically.") ]
@@ -139,9 +148,6 @@ Public Class ArchiveExtractor
         Optional BytesTotal As Long, _ 
         Optional ItemName As String _
     ) As Boolean
-        Static Processed As Long
-        Static Total As Long
-        Static DisplayName As String
         Dim UpdateNeeded As Boolean
 
         If This.ProgressView Is Nothing Then
@@ -154,20 +160,20 @@ Public Class ArchiveExtractor
             End If
         
             If BytesTotal _ 
-            AndAlso BytesTotal > Total Then
-                Total = BytesTotal
+            AndAlso BytesTotal > This.Total Then
+                This.Total = BytesTotal
                 UpdateNeeded = True
             End If
 
             If BytesCompleted _ 
-            AndAlso BytesCompleted > Processed Then
-                Processed = BytesCompleted
+            AndAlso BytesCompleted > This.Processed Then
+                This.Processed = BytesCompleted
                 UpdateNeeded = True
             End If
 
             If Len(ItemName) > 0 _
-            AndAlso ItemName <> DisplayName Then
-                DisplayName = ItemName
+            AndAlso ItemName <> This.DisplayName Then
+                This.DisplayName = ItemName
                 UpdateNeeded = True
             End If
 
@@ -177,9 +183,9 @@ Public Class ArchiveExtractor
 
             If UpdateNeeded Then
                 .UpdateCaptions _
-                    "Extracting " & DisplayName, _
-                    "Processed " & Processed & " out of " & Total & " files."
-                .UpdateProgress(Processed, Total)
+                    "Extracting " & This.DisplayName, _
+                    "Processed " & This.Processed & " out of " & This.Total & " files."
+                .UpdateProgress(This.Processed, This.Total)
             End If
 
             If .CancellationRequested Then

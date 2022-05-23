@@ -27,6 +27,8 @@ Public Interface IProgressView
 
     Property Get Handle() As LongPtr
 
+    Property Get IsVisible() As Boolean
+
     Sub UpdateProgress( _
         Value As Long, _  
         Optional Max As Long _
@@ -39,9 +41,9 @@ Public Interface IProgressView
 
     Sub ClearCaptions()
 
-    Sub Show()
+    Sub ShowDialog()
     
-    Sub Close()
+    Sub CloseDialog()
 
-    Sub Refresh()
+    Sub RefreshDialog()
 End Interface

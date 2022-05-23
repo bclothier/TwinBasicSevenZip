@@ -20,7 +20,7 @@
 		"StartupPosition": "vbStartUpScreen",
 		"Tag": null,
 		"Top": 0,
-		"Visible": true,
+		"Visible": false,
 		"Width": 300,
 		"WindowState": "vbNormal",
 		"__IDEOptions": {
@@ -33,10 +33,10 @@
 		"_children": [
 			{
 				"Anchors": {
-					"Bottom": false,
+					"Bottom": true,
 					"Left": true,
 					"Right": true,
-					"Top": true,
+					"Top": false,
 					"_className": "Anchors",
 					"_clsid": "{8524D4B5-72A9-40A9-A189-29E7905C40CA}"
 				},
@@ -68,7 +68,7 @@
 				"TabStop": true,
 				"Tag": null,
 				"Top": 80,
-				"Value": 50,
+				"Value": 0,
 				"Visible": false,
 				"VisualStyles": true,
 				"Width": 280,
@@ -116,10 +116,10 @@
 			{
 				"Alignment": "vbLeftJustify",
 				"Anchors": {
-					"Bottom": false,
+					"Bottom": true,
 					"Left": true,
 					"Right": true,
-					"Top": true,
+					"Top": false,
 					"_className": "Anchors",
 					"_clsid": "{8524D4B5-72A9-40A9-A189-29E7905C40CA}"
 				},
@@ -188,7 +188,7 @@
 			{
 				"Enabled": true,
 				"Height": 40,
-				"Interval": 0,
+				"Interval": 100,
 				"Left": 245,
 				"Name": "Timer",
 				"Tag": null,
@@ -199,10 +199,10 @@
 			},
 			{
 				"Anchors": {
-					"Bottom": false,
+					"Bottom": true,
 					"Left": true,
 					"Right": true,
-					"Top": true,
+					"Top": false,
 					"_className": "Anchors",
 					"_clsid": "{8524D4B5-72A9-40A9-A189-29E7905C40CA}"
 				},

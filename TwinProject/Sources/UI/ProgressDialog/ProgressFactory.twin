@@ -356,6 +356,20 @@ Private Module ProgressFactory
 		ByVal lParam As LongPtr _
 	) As Boolean
 
+    ' BOOL PostThreadMessageW(
+    '   [in] DWORD  idThread,
+    '   [in] UINT   Msg,
+    '   [in] WPARAM wParam,
+    '   [in] LPARAM lParam
+    ' );    
+    Private DeclareWide PtrSafe Function PostThreadMessage _
+    Lib "user32" Alias "PostThreadMessageW" ( _ 
+        ByVal idThread As Long, _ 
+        ByVal Msg As Long, _ 
+        ByVal wParam As LongPtr, _ 
+        ByVal lParam As LongPtr _ 
+    ) As Long
+
     ' HANDLE CreateThread (
     ' 	LPSECURITY_ATTRIBUTES lpThreadAttributes,
     ' 	SIZE_T dwStackSize,
@@ -414,6 +428,15 @@ Private Module ProgressFactory
         ByVal dwNewLong As LongPtr _ 
     ) As LongPtr
 
+    ' DWORD WaitForSingleObject(
+    '   [in] HANDLE hHandle,
+    '   [in] DWORD  dwMilliseconds
+    ' );
+    Private Declare PtrSafe Function WaitForSingleObject Lib "kernel32" ( _
+        ByVal hHandle As LongPtr, _ 
+        ByVal dwMilliseconds As Long _
+    ) As Long
+
     Private Type TSharedThreadData
         ProgressView As IProgressView
     	Progressable As IProgressAble
@@ -430,17 +453,19 @@ Private Module ProgressFactory
     Private SharedThreadData As TSharedThreadData
 
     Public Sub Create(Worker As IProgressAble)
-        If SharedThreadData.WorkThreadHandle Then
-            Err.Raise 5, CurrentComponentName, "Cannot create more than one active progress thread."
-        End If
+        With SharedThreadData
+            If .WorkThreadHandle Then
+                Err.Raise 5, CurrentComponentName, "Cannot create more than one active progress thread."
+            End If
 
-        Set SharedThreadData.Progressable = Worker
+            Set .Progressable = Worker
+            
+            .WorkThreadAddress = AddressOf ExecuteDoWork
+            .UiThreadAddress = AddressOf ShowProgressView
+            .PumpThreadAddress = AddressOf MessagePump
 
-        SharedThreadData.WorkThreadAddress = AddressOf ExecuteDoWork
-        SharedThreadData.UiThreadAddress = AddressOf ShowProgressView
-        SharedThreadData.PumpThreadAddress = AddressOf MessagePump
-
-        SharedThreadData.PumpThreadHandle = CreateThread(&H0, &H0, SharedThreadData.PumpThreadAddress, &H0, &H0, SharedThreadData.PumpThreadId)
+            .PumpThreadHandle = CreateThread(&H0, &H0, .PumpThreadAddress, &H0, &H0, .PumpThreadId)
+        End With
     End Sub
 
     Private Function MessagePump(ByVal Ignored As LongPtr) As Long
@@ -449,20 +474,17 @@ Private Module ProgressFactory
         CoInitializeEx(&H0, COINIT.COINIT_MULTITHREADED)
         Debug.Print "MessagePump Start"
 
-        Set SharedThreadData.ProgressView = New ProgressDialog()
-
-        If SharedThreadData.PumpThreadAddress _
-        AndAlso SharedThreadData.ProgressView IsNot Nothing _
-        AndAlso SharedThreadData.Progressable IsNot Nothing Then
-            Debug.Print "Starting ui thread"
-            SharedThreadData.UiThreadHandle = CreateThread(&H0, &H0, SharedThreadData.UiThreadAddress, &H0, &H0, SharedThreadData.UiThreadId)
-        End If
+        With SharedThreadData
+            If .UiThreadAddress _
+            AndAlso .Progressable IsNot Nothing Then
+                .UiThreadHandle = CreateThread(&H0, &H0, .UiThreadAddress, &H0, &H0, .UiThreadId)
+            End If
+        End With
 
 		Dim msg As MSG
 		Dim res As Long
 		Do Until SharedThreadData.UiThreadHandle = 0
             res = GetMessage(msg, 0, 0, 0)
-			' Debug.Print "MessagePump: res: " & res & ", msg.Message: " & msg.message
 			If res = 0 Then
 				Exit Do
 			ElseIf res < 0 Then
@@ -471,15 +493,11 @@ Private Module ProgressFactory
 			End If
 			
 			Select Case msg.message
-				Case WindowMessages.WM_QUIT, WindowMessages.WM_CLOSE, WindowMessages.WM_DESTROY
+                Case WindowMessages.WM_USER
+                    SharedThreadData.ProgressView.CloseDialog
                     Exit Do
 			End Select
-		
-            ' Debug.Print "Refreshing"
-            ' If SharedThreadData.ProgressView IsNot Nothing Then
-            '     SharedThreadData.ProgressView.Refresh
-            ' End If
-            ' Debug.Print "Refreshed"
+            
 			TranslateMessage msg
 			DispatchMessage msg
 		Loop
@@ -487,11 +505,13 @@ Private Module ProgressFactory
         Debug.Print "Message End of Loop"
 
     ExitProc:
-        If SharedThreadData.PumpThreadHandle Then
-        	CloseHandle SharedThreadData.PumpThreadHandle
-            SharedThreadData.PumpThreadHandle = 0
-            SharedThreadData.PumpThreadId = 0
-        End If
+        With SharedThreadData
+            If .PumpThreadHandle Then
+                CloseHandle .PumpThreadHandle
+                .PumpThreadHandle = 0
+                .PumpThreadId = 0
+            End If
+        End With
 
         CoUninitialize()
         Debug.Print "Message Pump Exit"
@@ -501,7 +521,7 @@ Private Module ProgressFactory
     ErrHandler:
         MsgBox "Error:       " & Err.Number & vbNewLine & _
                "Description: " & Err.Description & vbNewLine & _
-               "Source:      " & Err.Source & _
+               "Source:      " & Err.Source & vbNewLine & _
                "Procedure:   " & CurrentProcedureName
         Resume ExitProc
     End Function
@@ -509,22 +529,30 @@ Private Module ProgressFactory
     Private Function ShowProgressView(ByVal Ignored As LongPtr) As Long
         On Error GoTo ErrHandler
 
-    	SharedThreadData.ProgressView.Show
+		CoInitializeEx(&H0, COINIT.COINIT_MULTITHREADED)
 
-    ExitProc:
-        If SharedThreadData.UiThreadHandle Then
-        	CloseHandle SharedThreadData.UiThreadHandle
-            SharedThreadData.UiThreadHandle = 0
-            SharedThreadData.UiThreadId = 0
-            Set SharedThreadData.ProgressView = Nothing
-        End If
+		Set SharedThreadData.ProgressView = New ProgressDialog
+        SharedThreadData.ProgressView.ShowDialog
 
+    ExitProc:    
+        With SharedThreadData
+			Set .ProgressView = Nothing
+            If .UiThreadHandle Then
+                CloseHandle .UiThreadHandle
+                .UiThreadHandle = 0
+                .UiThreadId = 0
+            End If
+        End With
+
+        CoUninitialize()
+		Debug.Print "Ui Thread Exit"
+		
         Exit Function
 
     ErrHandler:
         MsgBox "Error:       " & Err.Number & vbNewLine & _
                "Description: " & Err.Description & vbNewLine & _
-               "Source:      " & Err.Source & _
+               "Source:      " & Err.Source & vbNewLine & _
                "Procedure:   " & CurrentProcedureName
         Resume ExitProc
     End Function
@@ -532,11 +560,14 @@ Private Module ProgressFactory
     [ Description ("Should be called by the IProgressView implementation when the IProgressView.Show has been called.") ]
     Public Sub ProgressViewShowCallback()
         On Error GoTo ErrHandler
-        If SharedThreadData.WorkThreadAddress _
-        AndAlso SharedThreadData.ProgressView IsNot Nothing _
-        AndAlso SharedThreadData.Progressable IsNot Nothing Then
-            SharedThreadData.WorkThreadHandle = CreateThread(&H0, &H0, SharedThreadData.WorkThreadAddress, &H0, &H0, SharedThreadData.WorkThreadId)
-        End If
+        
+        With SharedThreadData
+            If .WorkThreadAddress _
+            AndAlso .ProgressView IsNot Nothing _
+            AndAlso .Progressable IsNot Nothing Then
+                .WorkThreadHandle = CreateThread(&H0, &H0, .WorkThreadAddress, &H0, &H0, .WorkThreadId)
+            End If
+        End With
 
     ExitProc:
         Exit Sub
@@ -544,7 +575,7 @@ Private Module ProgressFactory
     ErrHandler:
         MsgBox "Error:       " & Err.Number & vbNewLine & _
                "Description: " & Err.Description & vbNewLine & _
-               "Source:      " & Err.Source & _
+               "Source:      " & Err.Source & vbNewLine & _
                "Procedure:   " & CurrentProcedureName
         Resume ExitProc
     End Sub
@@ -555,19 +586,28 @@ Private Module ProgressFactory
         SharedThreadData.Progressable.DoWork(SharedThreadData.ProgressView)
         
     ExitProc:
-        SharedThreadData.ProgressView.Close
-        If SharedThreadData.WorkThreadHandle Then
-        	CloseHandle SharedThreadData.WorkThreadHandle
-            SharedThreadData.WorkThreadHandle = 0
-            SharedThreadData.WorkThreadId = 0
-            Set SharedThreadData.Progressable = Nothing
-        End If
+        With SharedThreadData
+            PostThreadMessage .PumpThreadId, WindowMessages.WM_USER, &h0, &h0
+            If .WorkThreadHandle Then
+                CloseHandle .WorkThreadHandle
+                .WorkThreadHandle = 0
+                .WorkThreadId = 0
+            End If
+        End With
+		
+        Debug.Print "Work Thread Exit"
+		
+        Exit Function
 
     ErrHandler:
-        MsgBox "Error:       " & Err.Number & vbNewLine & _
-               "Description: " & Err.Description & vbNewLine & _
-               "Source:      " & Err.Source & _
-               "Procedure:   " & CurrentProcedureName
+        If Err.Number = CommonHResults.E_ABORT Then
+            'Ignore, the user has aborted the operation
+        Else
+            MsgBox "Error:       " & Err.Number & vbNewLine & _
+                "Description: " & Err.Description & vbNewLine & _
+                "Source:      " & Err.Source & vbNewLine & _
+                "Procedure:   " & CurrentProcedureName
+        End If
         Resume ExitProc
     End Function
 End Module
