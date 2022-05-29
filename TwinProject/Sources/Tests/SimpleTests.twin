@@ -1,4 +1,3 @@
-[ Restricted, Hidden ]
 Private Module SimpleTests
     Public Sub RunAllSimpleTests()
         Dim Failed As Boolean
@@ -46,9 +45,13 @@ Private Module SimpleTests
         With New Tester("Folders", FSO.BuildPath(App.Path, "Source\Test"))
             Dim Folder  As String = "random texts"
         	.CompressAndExtract("Folders_7z", Folder, "random texts.7z", ".")
+            .ViewArchive("Folders_7z\random texts.7z")
             .CompressAndExtract("Folders_tar", Folder, "random texts.tar", ".")
+            .ViewArchive("Folders_tar\random texts.tar")
             .CompressAndExtract("Folders_wim", Folder, "random texts.wim", ".")
+            .ViewArchive("Folders_wim\random texts.wim")
             .CompressAndExtract("Folders_zip", Folder, "random texts.zip", ".")
+            .ViewArchive("Folders_zip\random texts.zip")
             TempFailed = .Results(TempMessage)
             Message = Message & vbNewLine & TempMessage
             Failed = If(Failed, Failed, TempFailed)
@@ -85,5 +88,14 @@ Private Module SimpleTests
             FolderPath = .BuildPath(BasePath, "australia & oceania")
             If Not .FolderExists(FolderPath) Then .CreateFolder(FolderPath)
     	End With
+    End Sub
+
+    Public Sub TestHandlers()
+        Dim hs As Handlers = New Handlers
+        Dim h As Handler
+
+        For Each h In hs
+            Debug.Print h.Name, h.Extension, h.Flags, h.ClassIdAsString
+        Next
     End Sub
 End Module

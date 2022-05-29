@@ -1,0 +1,20 @@
+Private Class AsyncArchiveCompressor
+	Implements IProgressAble
+
+    Private Type TData
+    	ArchivePath As String
+        Entries As ArchiveUpdateEntries
+    End Type
+    Private This As TData
+
+    Friend Sub New(ArchivePath As String, Entries As ArchiveUpdateEntries)
+    	This.ArchivePath = ArchivePath
+        Set This.Entries = Entries
+    End Sub
+
+    Private Sub DoWork(ProgressView As IProgressView) Implements IProgressAble.DoWork
+        With New ArchiveCompressor(This.Entries, ProgressView)
+            .Compress(This.ArchivePath)
+        End With
+    End Sub
+End Class

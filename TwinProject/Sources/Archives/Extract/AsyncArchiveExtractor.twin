@@ -1,0 +1,20 @@
+Private Class AsyncArchiveExtractor
+	Implements IProgressAble
+
+    Private Type TData
+    	ArchivePath As String
+        DestinationFolder As String
+    End Type
+    Private This As TData
+
+    Friend Sub New(ArchivePath As String, DestinationFolder As String)
+    	This.ArchivePath = ArchivePath
+        This.DestinationFolder = DestinationFolder
+    End Sub
+
+    Private Sub DoWork(ProgressView As IProgressView) Implements IProgressAble.DoWork
+        With New ArchiveExtractor(This.ArchivePath, ProgressView)
+            .Extract(This.DestinationFolder)
+        End With
+    End Sub
+End Class

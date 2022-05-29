@@ -1,0 +1,4 @@
+[InterfaceId("3362D0F2-249C-48FC-9472-F4569A52690C")]
+Public Interface IProgressAble
+    Sub DoWork(ProgressView As IProgressView)
+End Interface

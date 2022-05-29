@@ -1,0 +1,180 @@
+[ Description ("Provide information about a supported archive format that can be handled by the currently loaded 7-Zip Dll.") ]
+[ ClassId ("A35FD850-4820-48D9-A3E4-BCD5C3C20279") ]
+[ COMCreatable (False) ]
+Public Class Handler
+    Private Type TData
+        Index As Long
+        Name As String
+        ClassID As GUID
+        Extension As String
+        AddExtension As String
+        Update As Boolean
+        KeepName As Boolean
+        Signature() As Byte
+        MultiSignature() As Byte
+        SignatureOffset As Long
+        AltStreams As Boolean
+        NtSecure As Boolean
+        Flags As ArchiveInfoFlags
+    End Type
+    Private This As tdata
+
+    Friend Sub New(Index As Long)
+        This.Index = Index
+        This.Name = GetValue(HandlerPropId.HandlerName)
+        AssignToGuid(This.ClassID, GetValue(HandlerPropId.ClassID))
+        This.Extension = GetValue(HandlerPropId.Extension)
+        This.AddExtension = GetValue(HandlerPropId.AddExtension)
+        This.Update = GetValue(HandlerPropId.Update)
+        This.KeepName = GetValue(HandlerPropId.KeepName)
+        AssignToByteArray(This.Signature, GetValue(HandlerPropId.Signature))
+        AssignToByteArray(This.MultiSignature, GetValue(HandlerPropId.MultiSignature))
+        This.SignatureOffset = GetValue(HandlerPropId.SignatureOffset)
+        This.AltStreams = GetValue(HandlerPropId.AltStreams)
+        This.NtSecure = GetValue(HandlerPropId.NtSecure)
+        This.Flags = GetValue(HandlerPropId.Flags)
+    End Sub
+
+    Private Function GetValue(Id As HandlerPropId) As Variant
+    	Dim hr As Long
+        Dim tmp As Variant
+        With LibraryInstance.Manager
+            hr =.GetHandlerProperty2(This.Index, Id, tmp)
+            If hr = 0 Then
+                Return tmp
+            End If
+        End With
+    End Function
+
+    Private Sub AssignToGuid(ByRef g As GUID, ByRef Result() As Byte)
+        RtlMoveMemory(g, ByVal VarPtr(Result(0)), LenB(g))
+    End Sub
+
+    Private Sub AssignToByteArray(ByRef Bytes() As Byte, ByRef Result As Variant)
+    	If Not IsEmpty(Result) Then
+            Bytes = Result
+        End If
+    End Sub
+
+    [ Description ("7-Zip Dll's assigned index for this handler.") ]
+    Public Property Get Index() As Long
+    	Return This.Index
+    End Property
+
+    [ Description ("The name of the handler.") ]
+    Public Property Get Name() As String
+        Return This.Name
+    End Property
+
+    [ Description ("The CLSID for this handler. Note: the class is not registered but can be used with 7-zip's internal CreateObject function.") ]
+    Public Property Get ClassId() As GUID
+        Return This.ClassID
+    End Property
+
+    [ Description ("String representation of the ClassId property.") ]
+    Public Property Get ClassIdAsString() As String
+    	Dim Buffer As String = Space$(39)
+        If StringFromGUID2(This.ClassID, Buffer, 39) > 0 Then
+            Return Buffer
+        End If
+    End Property
+
+    [ Description ("File extension(s) used by this handler.") ]
+    Public Property Get Extension() As String
+        Return This.Extension
+    End Property
+
+    [ Description ("Additional file extension(s) also supported by this handler.") ]
+    Public Property Get AdditionalExtensions() As String
+        Return This.AddExtension
+    End Property
+
+    [ Description ("Indicates if the handler is capable of modifying an existing archive.") ]
+    Public Property Get Update() As Boolean
+        Return This.Update
+    End Property
+
+    [ Description ("Indicates if the handler can keep the original file name in the archive.") ]
+    Public Property Get KeepName() As Boolean
+        Return This.KeepName
+    End Property
+
+    [ Description ("Returns a byte array that can be used to scan a given file and determine if it's handled by this handler.") ]
+    Public Property Get Signature() As Byte()
+        Return This.Signature
+    End Property
+
+    [ Description ("Some handlers may have multiple signatures; use this to get additional signatures, if applicable.") ]
+    Public Property Get MultipleSignature() As Byte()
+        Return This.MultiSignature
+    End Property
+
+    [ Description ("Indicates if the signature is located at a given offset within the archive file.") ]
+    Public Property Get SignatureOffset() As Long
+        Return This.SignatureOffset
+    End Property
+
+    [ Description ("Indicates if the handler can handle alternate streams.") ]
+    Public Property Get AlternateStreams() As Boolean
+        Return This.AltStreams
+    End Property
+
+    [ Description ("Indicates if the handler can preserve security information used by Windows") ]
+    Public Property Get NtSecure() As Boolean
+        Return This.NtSecure
+    End Property
+
+    [ Description ("Refer to the ArchiveInfoFlags for flags supported by this handler.") ]
+    Public Property Get Flags() As ArchiveInfoFlags
+        Return This.Flags
+    End Property
+
+    [ Description ("Determines whether a given byte array consists of a valid archive format. The byte array must start at the beginning of the content and should be large enough for the check to be effective.") ]
+    Public Function IsArchiveBytesArray(Bytes() As Byte) As IsArcResults
+    	Return LibraryInstance.Manager.IsArchive(This.Index, Bytes)
+    End Function
+
+    [ Description ("Determines whether a given stream is a valid archive format. The stream must be binary and opened.") ]
+    Public Function IsArchiveStream(Stream As ADODB.Stream) As IsArcResults
+        Dim SampleSize As Long = 4096
+        Dim Bytes() As Byte
+        Dim Result As IsArcResults
+
+        With Stream
+            If .Type <> adTypeBinary Then
+                Err.Raise 5, CurrentComponentName, "The stream must be a binary stream."
+            ElseIf .State <> adStateOpen Then
+                Err.Raise 5, CurrentComponentName, "The stream must be opened before calling " & CurrentProcedureName & "."
+            End If
+            
+            If .Position Then
+                .Position = 0
+            End If
+
+            Do
+                Bytes() = .Read(SampleSize)
+
+                Result = IsArchiveBytesArray(Bytes)
+                If Result = IsArcResults.NeedMoreBytes Then
+                    SampleSize = SampleSize * 2
+                    If SampleSize > .Size Then
+                        SampleSize = .Size
+                    End If
+                    .Position = 0
+                End If
+            Loop Until Result <> IsArcResults.NeedMoreBytes AndAlso .Position < .Size
+        End With
+
+        Return Result
+    End Function
+
+    [ Description ("Determines whether a given file is a valid archive format.") ]
+    Public Function IsArchiveFile(FilePath As String) As IsArcResults
+        Dim Stream As ADODB.Stream = New ADODB.Stream
+        With Stream
+        	.Type = adTypeBinary
+            .LoadFromFile(FilePath)
+        End With
+        Return IsArchiveStream(Stream)
+    End Function
+End Class

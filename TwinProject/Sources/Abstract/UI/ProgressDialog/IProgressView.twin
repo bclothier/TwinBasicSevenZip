@@ -1,0 +1,50 @@
+[InterfaceId("982E25C2-C9F6-477A-BD1F-8F53391D8818")]
+Public Interface IProgressView
+	Property Get ProgressTextMajor() As String
+    Property Let ProgressTextMajor(NewValue As String)
+    
+    Property Get ProgressTextMinor() As String
+    Property Let ProgressTextMinor(NewValue As String)
+    
+    Property Get TitleCaption() As String
+    Property Let TitleCaption(NewValue As String)
+
+    Property Get Indeterminate() As Boolean
+    Property Let Indeterminate(NewValue As Boolean)
+
+    Property Get AutoCloseOnMax() As Boolean
+    Property Let AutoCloseOnMax(NewValue As Boolean)
+
+    Property Get ProgressValue() As Long
+    Property Let ProgressValue(NewValue As Long)
+
+    Property Get ProgressMax() As Long
+    Property Let ProgressMax(NewValue As Long)
+
+    Property Get Cancellable() As Boolean
+    Property Let Cancellable(NewValue As Boolean)
+
+    Property Get CancellationRequested() As Boolean
+
+    Property Get Handle() As LongPtr
+
+    Property Get IsVisible() As Boolean
+
+    Sub UpdateProgress( _
+        Value As Long, _  
+        Optional Max As Long _
+    )
+
+    Sub UpdateCaptions( _
+        Optional MajorCaption As String, _ 
+        Optional MinorCaption As String _
+    )
+
+    Sub ClearCaptions()
+
+    Sub ShowDialog()
+    
+    Sub CloseDialog()
+
+    Sub RefreshDialog()
+End Interface

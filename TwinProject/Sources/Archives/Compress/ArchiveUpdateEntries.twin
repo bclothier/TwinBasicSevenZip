@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("A collection of new archive entries to be added into an archive file when compressing.") ]
+[ ClassId ("3179F129-C8B7-4B8B-96B5-205DA65977A7") ]
 Public Class ArchiveUpdateEntries
     Private Type TData
         Entries As Scripting.Dictionary

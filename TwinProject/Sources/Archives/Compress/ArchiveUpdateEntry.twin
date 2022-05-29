@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Provide metadata about an entry to be added to a new archive as part of compression.") ]
+[ ClassId ("8C0B1BEA-16AF-47A3-AA51-BC2D68BF4A5C") ]
 Public Class ArchiveUpdateEntry
     Private Type TData
         Path As String

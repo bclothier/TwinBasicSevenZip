@@ -127,4 +127,18 @@ Private Module Helpers
             End If
         End If
     End Sub
+    
+    Public Function TruncateToLong(Value As LongLong) As Long
+        If LenB(Value) = LenB(TruncateToLong) Then
+            Return CLng(Value)
+        ElseIf Value >= 0 AndAlso Value <= &H000000007FFFFFFF^ Then
+            Return CLng((&H00000000FFFFFFFF^ And Value))
+        Else
+            Return CLng(Not (&H00000000FFFFFFFF^ And (Not Value)))
+        End If
+    End Function
+    
+    Public Function GetErrorUnsupportedFormatString(Operation As String, Extension As String) As String
+        Return "Cannot " & Operation & " an archive of the type '" & Extension & "'; it is not one of the supported formats for the loaded 7-Zip DLL. Either verify you are using correct 7-Zip DLL or change the archive format." & vbNewLine & "Currently loaded DLL: " & LibraryInstance.LibName & vbNewLine & "Currently available formats: " & LibraryInstance.Manager.SupportedFormats
+    End Function
 End Module

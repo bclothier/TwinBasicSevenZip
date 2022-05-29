@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("A collection of files or folders present in an existing archive.") ]
+[ ClassId ("F8D09ECC-FFD5-44EB-81E8-E7827A9F9A60") ]
 Public Class ArchiveEntries
     Private Type TData
     	InArchive As IInArchive

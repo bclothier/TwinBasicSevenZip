@@ -1,0 +1,360 @@
+[ Description ("Supports runtime calling of DLL functions without requiring a Declare statement.") ]
+Private Class UniversalCaller
+    ' A stripped-down modified 64-bit compatible version of the cUniveralCall class from LaVolpe found here:
+    ' https://www.vbforums.com/showthread.php?781595-VB6-Call-Functions-By-Pointer-(Universall-DLL-Calls)
+    Option Explicit
+
+    ' for documentation on the main API DispCallFunc... http://msdn.microsoft.com/en-us/library/windows/desktop/ms221473%28v=vs.85%29.aspx
+    ' HRESULT DispCallFunc(
+    '   void       *pvInstance,
+    '   ULONG_PTR  oVft,
+    '   CALLCONV   cc,
+    '   VARTYPE    vtReturn,
+    '   UINT       cActuals,
+    '   VARTYPE    *prgvt,
+    '   VARIANTARG **prgpvarg,
+    '   VARIANT    *pvargResult
+    ' );
+    Private Declare PtrSafe Function DispCallFunc _
+    Lib "oleaut32.dll" ( _
+        ByVal pvInstance As LongPtr, _
+        ByVal oVft As LongPtr, _
+        ByVal cc As Long, _
+        ByVal vtReturn As Integer, _
+        ByVal cActuals As Long, _
+        ByRef prgvt As Integer, _
+        ByRef prgpvarg As LongPtr, _
+        ByRef pvargResult As Variant _
+    ) As Long
+
+    ' HMODULE GetModuleHandleA(
+    '   [in, optional] LPCSTR lpModuleName
+    ' );
+    Private DeclareWide PtrSafe Function GetModuleHandle _
+    Lib "kernel32.dll" Alias "GetModuleHandleA" ( _
+        ByVal lpModuleName As String _
+    ) As LongPtr
+
+    ' FARPROC GetProcAddress(
+    '   [in] HMODULE hModule,
+    '   [in] LPCSTR  lpProcName
+    ' );
+    Private Declare PtrSafe Function GetProcAddress _
+    Lib "kernel32.dll" ( _
+        ByVal hModule As LongPtr, _
+        ByVal lpProcName As String _
+    ) As LongPtr
+
+    ' HMODULE LoadLibraryW(
+    '   [in] LPCWSTR lpLibFileName
+    ' );
+    Private DeclareWide PtrSafe Function LoadLibrary _
+    Lib "kernel32.dll" Alias "LoadLibraryW" ( _
+        ByVal lpLibFileName As String _
+    ) As LongPtr
+
+    ' BOOL FreeLibrary(
+    '   [in] HMODULE hLibModule
+    ' );
+    Private Declare PtrSafe Function FreeLibrary _
+    Lib "kernel32.dll" ( _
+        ByVal hLibModule As LongPtr _
+    ) As Long
+
+    ' VOID RtlMoveMemory(
+    '   _Out_       VOID UNALIGNED *Destination,
+    '   _In_  const VOID UNALIGNED *Source,
+    '   _In_        SIZE_T         Length
+    ' );    
+    Private Declare PtrSafe Sub CopyMemory _
+    Lib "kernel32.dll" Alias "RtlMoveMemory" ( _
+        ByRef Destination As Any, _ 
+        ByRef Source As Any, _ 
+        ByVal Length As LongPtr _
+    )
+
+    ' void RtlFillMemory(
+    '    void*  Destination,
+    '    size_t Length
+    '    int    Fill
+    ' );
+    Private Declare PtrSafe Sub FillMemory _
+    Lib "kernel32.dll" Alias "RtlFillMemory" ( _
+        ByRef Destination As Any, _ 
+        ByVal Length As LongPtr, _ 
+        ByVal Fill As Byte _
+    )
+
+    ' void SetLastError(
+    '   [in] DWORD dwErrCode
+    ' );
+    Private Declare PtrSafe Sub SetLastError _ 
+    Lib "kernel32.dll" ( _
+        ByVal dwErrCode As Long _
+    )
+  
+    ' int lstrlenA(
+    '   [in] LPCSTR lpString
+    ' );
+    Private Declare PtrSafe Function lstrlenA _ 
+    Lib "kernel32.dll" ( _
+        ByVal lpString As LongPtr _
+    ) As Long
+    
+    ' int lstrlenW(
+    '   [in] LPCWSTR lpString
+    ' );
+    Private Declare PtrSafe Function lstrlenW _ 
+    Lib "kernel32.dll" ( _
+        ByVal lpString As LongPtr _
+    ) As Long
+
+    Public Enum CALLINGCONVENTION_ENUM
+        ' http://msdn.microsoft.com/en-us/library/system.runtime.interopservices.comtypes.callconv%28v=vs.110%29.aspx
+        CC_FASTCALL = 0&
+        CC_CDECL
+        CC_PASCAL
+        CC_MACPASCAL
+        CC_STDCALL                        ' typical windows APIs
+        CC_FPFASTCALL
+        CC_SYSCALL
+        CC_MPWCDECL
+        CC_MPWPASCAL
+    End Enum
+
+    Public Enum CALLRETURNTUYPE_ENUM
+        CR_None = vbEmpty
+        CR_LONG = vbLong
+        CR_BYTE = vbByte
+        CR_INTEGER = vbInteger
+        CR_SINGLE = vbSingle
+        CR_DOUBLE = vbDouble
+        CR_CURRENCY = vbCurrency
+        CR_LONGLONG = vbLongLong
+        ' if the value you need isn't in above list, you can pass the value manually to the
+        ' CallDllFunction method below. For additional values, see:
+        ' http://msdn.microsoft.com/en-us/library/cc237865.aspx
+    End Enum
+
+    Public Enum STRINGPARAMS_ENUM
+        STR_NONE = 0&
+        STR_ANSI
+        STR_UNICODE
+    End Enum
+
+    Private Type TData
+        LibraryPath As String
+        LibraryHandle As Longptr
+    End Type
+    Private This As tdata
+    
+    Friend Sub New(LibraryPath As String)
+        If Len(LibraryPath) = 0 Then
+        	Err.Raise 5, CurrentComponentName, "The 'LibraryPath' parameter cannot be blank."
+        End If
+        
+        Dim LibraryHandle As LongPtr
+        LibraryHandle = GetModuleHandle(LibraryHandle)                 ' loaded in process already?
+        If LibraryHandle = 0& Then                               ' if not, load it now
+            LibraryHandle = LoadLibrary(LibraryPath)
+            If LibraryHandle = 0& Then
+                Select Case Err.LastDllError
+                    Case 193
+                        Err.Raise 5, CurrentComponentName, "Cannot load library at the path '" & LibraryPath & "'; the library format is invalid. This may be due to loading 32-bit dll in a 64-bit process or vice versa."
+                    Case Else
+                        Err.Raise 5, CurrentComponentName, "Unable to load library at the path '" & LibraryPath & "'; the library may not exist or cannot be loaded."
+                End Select
+            End If
+        End If
+        This.LibraryHandle = LibraryHandle
+        This.LibraryPath = LibraryPath
+    End Sub
+
+    Private Sub Class_Terminate()
+        If This.LibraryHandle Then
+            FreeLibrary(This.LibraryHandle)
+        End If
+    End Sub
+
+    Public Function GetDllFunctionAddress( _
+        ByVal FunctionName As String _
+    ) As LongPtr
+        If Len(FunctionName) = 0 Then
+            Err.Raise 5, CurrentComponentName, "The function name is empty but it is required. Provide a valid name or an ordinal prefixed with a hash sign (e.g. '#12')"
+        End If
+
+        Dim FunctionPtr As LongPtr = GetProcAddress(This.LibraryHandle, FunctionName)           ' get the function pointer (Case-Sensitive)
+        If FunctionPtr = 0& Then ' abort if failure
+            Err.Raise 5, CurrentComponentName, "The function name '" & FunctionName & "' was not found in the library at the path '" & This.LibraryPath & "'; check the name and lettercasing."
+        End If
+
+        Return FunctionPtr
+    End Function
+
+    Public Function CallDllFunction( _
+        ByVal FunctionPtr As LongPtr, _
+        ByVal HasStringParams As STRINGPARAMS_ENUM, _
+        ByVal FunctionReturnType As CALLRETURNTUYPE_ENUM, _
+        ByVal CallConvention As CALLINGCONVENTION_ENUM, _
+        ParamArray FunctionParameters() As Variant _
+    ) As Variant
+    ' Return value. Will be a variant containing a value of FunctionReturnType
+    '   If this method fails, an error will be raised.
+    '   If the method succeeds, there is no guarantee that the function you called succeeded. The
+    '       success/failure of that function would be indicated by this method's return value.
+    '   If calling a sub vs function & this method succeeds, the return value will be zero.
+    '   Summarizing: if method fails to execute, you will receive an error
+    '       If method executes ok, return value is from the DLL you called
+
+    ' Parameters:
+    '   FunctionPtr. The DLL function pointer to call. Get it from GetDllFunctionAddress()
+    '   HasStringParams. Provide one of the 3 available values
+    '       STR_NONE. No parameters are strings or all strings are passed via StrPtr()
+    '       STR_UNICODE. Any passed string values are for a Unicode function, i.e., SetWindowTextW
+    '       STR_ANSI. Any passed string values are for an ANSI function, i.e., SetWindowTextA
+    '       Important: If you pass one of FunctionParameters a String variable, you must include
+    '           STR_UNICODE or STR_ANSI depending on what version function you are calling
+    '           See the FunctionParameters section below for more
+    '   FunctionReturnType. Describes what variant type the called function returns
+    '       If calling a subroutine that does not return a value, use CR_None
+    '   CallConvention. One of various DLL calling conventions
+    '       You must know the calling convention of the function you are calling and the number
+    '           of parameters, along with the parameter variable type
+    '   FunctionParameters. The values and variant type for each value as required by the function
+    '       you are calling. This is important. Passing incorrect variable types can cause crashes.
+    '       There is no auto-conversion like VB would do for you if you were to call an API function.
+    '       To ensure you pass the correct variable type, use VBs conversion routines:
+    '           Passing a Long? CLng(10), CLng(x). Passing an Integer? CInt(10), CInt(x)
+    '       Special cases:
+    '           UDTs (structures). Pass these using VarPtr(), i.e., VarPtr(uRect)
+    '               If UDT members contain static size strings, you should declare those string members
+    '               as Byte arrays instead. When array is filled in by the function you called,
+    '               you can use StrConv() to convert array to string.
+    '               If UDT members contain dynamic size strings, you should declare those as Long.
+    '               When the function returns, you can use built-in functions within this class to
+    '               retrieve the string from the pointer provided to your UDT.
+    '           Arrays. DO NOT pass the array. Pass only a pointer to the first member of the array,
+    '               i.e., VarPtr(myArray(0)), VarPtr(myArray(0,0)), etc
+    '           Strings for ANSI functions.
+    '               1) Passing by variable name or value? i.e., strContent, "Edit", etc
+    '                   The string needs to be converted to ANSI, and this class will do that for you
+    '                   if you also pass HasStringParams as STR_ANSI. Otherwise, do NOT pass strings
+    '                   for ANSI functions by variable name or value. When passed by variable name,
+    '                   the variable contents are changed to 1 byte per character. To prevent this,
+    '                   pass the variable name inside parentheses, i.e., (myVariable)
+    '               2) Passing by StrPtr()? i.e, StrPtr(strContent), StrPtr("Edit")
+    '                   If the function you are calling needs the string contents, then do NOT pass
+    '                   the string this way. You must first convert it to ANSI. Else, you could
+    '                   pass it as desribed in #1 above.
+    '               Rule-of-Thumb. If string is just a buffer, pass it by StrPtr(), then on return,
+    '                   use VB's StrConv() to convert it from ANSI to unicode. Otherwise, pass the
+    '                   string by variable name or value
+    '           Strings for Unicode functions
+    '               1) Passing by variable name or value? i.e., strContent, "Edit", etc
+    '                   Internally, the string must be passed to the function ByVal via StrPtr().
+    '                   This class will do that, but it is faster (less code) if you pass all strings
+    '                   for unicode functions via StrPtr()
+    '               2) Passing by StrPtr()? i.e, StrPtr(strContent), StrPtr("Edit")
+    '                   Less code required, fastest method, no conversions required at all
+    '               Rule-of-Thumb. All strings for unicode functions should be passed via StrPtr()
+    '           Numeric values vs. variables. Be aware of the variable type of the number you pass.
+    '               Depending on the value of the number, it may be Integer, Long, Double, etc.
+    '               Numbers in range -32768 to 32767 are Integer, from -2147483648 to 2147483647 are Long
+    '               Fractional/decimal numbers are Double
+    '               If function parameter expects Long, don't pass just 5, pass 5& or CLng(5)
+    '           Numbers as variables. Be sure the variable type matches the parameter type, i.e.,
+    '               dont pass variables declared as Variant to a function expecting Long
+
+        '// minimal sanity check for these 4 parameters:
+        If Len(This.LibraryPath) = 0 Then
+            Err.Raise 5, CurrentComponentName, "The library name is empty. The library name must be provided when creating the class."
+        ElseIf Not (FunctionReturnType And &HFFFF0000) = 0& Then ' can only be 4 bytes
+            Err.Raise 5, CurrentComponentName, "Invalid value ('&H" & Hex(FunctionReturnType) & "') for the parameter 'FunctionReturnType'; it must be in the range of &H0 to &HFFFF."
+        ElseIf HasStringParams < STR_NONE Or HasStringParams > STR_UNICODE Then
+        	Err.Raise 5, CurrentComponentName, "Invalid value ('" & HasStringParams & "') for the parameter 'HasStringParams'; the value must be one of the following STRINGPARAMS_ENUM values: STR_NONE, STR_ANSI, or STR_UNICODE."
+        End If
+
+        Dim Index As Long
+        Dim Count As Long
+        Dim Upper As Long
+        Dim ParamPtr() As LongPtr
+        Dim ParamType() As Integer
+        Dim ReturnValue As Variant
+        Dim Params() As Variant
+        
+        Params() = FunctionParameters()                    ' copy passed parameters, if any
+        Count = Abs(UBound(Params) - LBound(Params) + 1&)
+        Upper = Count - 1&
+        If HasStringParams > STR_NONE Then                  ' patch to ensure Strings passed as handles
+            For Index = 0& To Upper
+                If VarType(FunctionParameters(Index)) = vbString Then
+                    Params(Index) = ExtractStringPointerFromVariant(FunctionParameters(Index), HasStringParams)
+                End If
+            Next
+        End If
+                                                            ' fill in rest of APIs parameters
+        If Count = 0& Then                                 ' no return value (sub vs function)
+            ReDim ParamPtr(0 To 0)
+            ReDim ParamType(0 To 0)
+        Else
+            ReDim ParamPtr(0 To Upper)               ' need matching array of parameter types
+            ReDim ParamType(0 To Upper)              ' and pointers to the parameters
+            For Index = 0& To Upper
+                ParamPtr(Index) = VarPtr(Params(Index))
+                ParamType(Index) = VarType(Params(Index))
+            Next
+        End If
+
+        ' call the function now
+        Dim Result As Long = DispCallFunc( _
+            0&, _
+            FunctionPtr, _
+            CallConvention, _
+            FunctionReturnType, _
+            Count, _
+            ParamType(0), _
+            ParamPtr(0), _
+            ReturnValue _
+        )
+            
+        If Result = 0& Then                                 ' 0 = S_OK
+            If FunctionReturnType = CR_None Then
+                Return Result
+            Else
+                Return ReturnValue                     ' return result
+            End If
+        Else
+            Err.ReturnHResult = Result ' set error & return Empty
+        End If
+    End Function
+
+    Private Function ExtractStringPointerFromVariant( _
+        Value As Variant, _
+        StringEncoding As STRINGPARAMS_ENUM _
+    ) As LongPtr
+        Const vtSize As Long = 2&
+        Const bstrValOffset As Long = 8& 'The offset of bstrval member is same in both 32/64 bit.
+        Const VT_BYREF As Long = &H4000&
+
+        Dim TempPtr As LongPtr
+        Dim StringPtr As LongPtr
+        Dim TempString As String
+
+        CopyMemory TempPtr, ByVal VarPtr(Value), vtSize
+        If (TempPtr And VT_BYREF) = 0& Then      ' else variant has pointer to StrPtr
+            TempPtr = VarPtr(Value) + bstrValOffset
+        Else
+            CopyMemory TempPtr, ByVal VarPtr(Value) + bstrValOffset, LenB(TempPtr)
+        End If
+        CopyMemory StringPtr, ByVal TempPtr, LenB(StringPtr)    ' get the StrPtr
+        If StringPtr > 0& Then                    ' if not null then
+            If StringEncoding = STR_ANSI Then  ' convert Unicode to ANSI
+                TempString = Value ' then re-write the passd String to ANSI
+                FillMemory ByVal StringPtr, LenB(TempString), 0
+                TempString = StrConv(TempString, vbFromUnicode)
+                CopyMemory ByVal StringPtr, ByVal StrPtr(TempString), LenB(TempString)
+            End If
+        End If
+        Return StringPtr
+    End Function
+End Class

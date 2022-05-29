@@ -1,11 +1,7 @@
-[ Restricted, Hidden ]
 [ COMCreatable (False) ]
+[ ClassId ("1A92F185-13F2-4D0D-A5A0-73B9BD08C2FC") ]
 Private Class ArchivePropertiesEnumerator
     Implements IEnumVARIANT
-
-    Private Const E_INVALIDARGS As Long = &H80070057
-    Private Const S_OK As Long = 0
-    Private Const S_FALSE As Long = 1
 
     Private Type TData
         CurrentIndex As Long
@@ -31,7 +27,7 @@ Private Class ArchivePropertiesEnumerator
 
     Private Sub Next(ByVal celt As Long, ByRef rgvar As Variant, ByRef pceltFetched As Long) Implements IEnumVARIANT.Next
         If VarPtr(rgvar) = 0 Then
-            Err.ReturnHResult = E_INVALIDARGS
+            Err.ReturnHResult = E_INVALIDARG
             Exit Sub
         End If
 
@@ -53,7 +49,7 @@ Private Class ArchivePropertiesEnumerator
                 This.CurrentIndex += 1
             End If
         Else
-            Err.ReturnHResult = E_INVALIDARGS
+            Err.ReturnHResult = E_INVALIDARG
             Exit Sub
         End If
         

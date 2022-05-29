@@ -1,8 +1,8 @@
-[ Restricted, Hidden ]
-Private Module Objects
+Private Module LibraryInstance
     Private Type TData
         Initialized As boolean
     	LibPath As String
+        LibName As String
         Manager As LibraryManager
         FSO As Scripting.FileSystemObject
     End Type
@@ -18,19 +18,27 @@ Private Module Objects
                 Err.Raise 5, CurrentProjectName, "Failed to initialize: Cannot find the dependent 7z*.dll. Check that you have one of those possible dll in the same folder as the " & CurrentProjectName & " dll: 7z.dll, 7za.dll, 7zxa.dll"
             End If
         End If
-
         Set This.Manager = New LibraryManager(This.LibPath)
+        This.LibName = FSO.GetFileName(This.LibPath)
         This.Initialized = True
     End Sub
 
     Private Function TryFindDll(OutLibPath As String) As Boolean
-        With FSO
-            Dim fil As Scripting.File
-            Dim fol As Scripting.Folder
-            Dim possibleDll As Scripting.File
+        If TryFindDllInFolder(App.Path, OutLibPath) Then
+            Return True
+        End If
 
-            Set fol = .GetFolder(App.Path)
-            For Each fil In fol.Files
+        If TryFindDllInFolder(FSO.BuildPath(GetProgramFilesPath(), "7-Zip"), OutLibPath) Then
+            Return True
+        End If
+    End Function
+
+    Private Function TryFindDllInFolder(FolderPath As String, OutLibPath As String) As Boolean
+        Dim fil As Scripting.File
+        Dim possibleDll As Scripting.File
+
+        With FSO.GetFolder(FolderPath)
+            For Each fil In .Files
                 Select Case fil.Name
                     Case "7z.dll"
                         OutLibPath = fil.Path
@@ -43,18 +51,24 @@ Private Module Objects
                         End If
                 End Select
             Next
-
-            If possibleDll IsNot Nothing Then
-                OutLibPath = possibleDll.Path
-            End If
-            Return (Len(OutLibPath) > 0)
         End With
+
+        If possibleDll IsNot Nothing Then
+            OutLibPath = possibleDll.Path
+        End If
+        Return (Len(OutLibPath) > 0)
     End Function
 
     Public Property Get LibPath() As String
     	Init()
 
         Return This.LibPath
+    End Property
+
+    Public Property Get LibName() As String
+        Init()
+
+        Return This.LibName
     End Property
 
     Public Property Let LibPath(NewValue As String)

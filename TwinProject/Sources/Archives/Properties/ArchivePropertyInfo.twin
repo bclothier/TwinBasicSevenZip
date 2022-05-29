@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Provide metadata about an archive entry or the archive file.") ]
+[ ClassId ("66E945FC-0A00-411F-914D-FDA99439DFF3") ]
 Public Class ArchivePropertyInfo
     Private Type TData
         Id As ItemPropId
