@@ -1,4 +1,5 @@
 [ COMCreatable (False) ]
+[ ClassId ("D6D4CDA2-35E3-4E96-9327-92C449EF9A35") ]
 Private Class Filestream
     Implements ISequentialInStream
     Implements IInStream
@@ -34,7 +35,7 @@ Private Class Filestream
     Private Sub Class_Terminate()
         If This.Stream IsNot Nothing Then
             If This.Mode = FileMode.ForWriting Then
-                Debug.Print "Saving: ", This.FilePath, This.Stream.Position
+                ' Debug.Print "Saving: ", This.FilePath, This.Stream.Position
                 If This.Stream.Size > 0 Then
                     If This.Stream.Position <> 0 Then
                         This.Stream.Position = 0
@@ -49,7 +50,7 @@ Private Class Filestream
     End Sub
 
     Private Sub Read(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) Implements ISequentialInStream.Read, IInStream.Read
-        Debug.Print "Filestream::Read called"
+        ' Debug.Print "Filestream::Read called"
         If This.Mode <> FileMode.ForReading Then
             If VarPtr(processedSize) <> 0 Then
                 processedSize = 0
@@ -74,14 +75,14 @@ Private Class Filestream
     End Sub
 
     Private Sub Seek(ByVal offset As LongLong, ByVal seekOrigin As Long, ByRef newPosition As LongLong) Implements IInStream.Seek, IOutStream.Seek
-        Debug.Print "Filestream::Seek called"
+        ' Debug.Print "Filestream::Seek called"
         Const E_NEGATIVE_SEEK As Long = &H80070083&
 
     	Select Case seekOrigin
             Case StreamSeekOrigin.SZ_SEEK_SET
-                This.Stream.Position = CLng(offset)
+                This.Stream.Position = TruncateToLong(offset)
             Case StreamSeekOrigin.SZ_SEEK_CUR
-                This.Stream.Position += CLng(offset)
+                This.Stream.Position += TruncateToLong(offset)
             Case StreamSeekOrigin.SZ_SEEK_END
                 This.Stream.Position = This.Stream.Size
         End Select
@@ -89,7 +90,7 @@ Private Class Filestream
     End Sub
 
     Private Sub Write(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) Implements ISequentialOutStream.Write, IOutStream.Write
-        Debug.Print "Filestream::Write called", This.FilePath, size, ObjPtr(This.Stream)
+        ' Debug.Print "Filestream::Write called", This.FilePath, size, ObjPtr(This.Stream)
         If This.Mode <> FileMode.ForWriting Then
             If VarPtr(processedSize) <> 0 Then
                 processedSize = 0
@@ -107,11 +108,11 @@ Private Class Filestream
     End Sub
 
     Private Sub SetSize(ByVal newSize As LongLong) Implements IOutStream.SetSize
-        Debug.Print "Filestream::SetSize called"
+        ' Debug.Print "Filestream::SetSize called"
     	'Ignored
     End Sub
 
     Private Sub OutStreamFinish() Implements IOutStreamFinish.OutStreamFinish
-    	Debug.Print "Filestream::OutStreamFinish called"
+    	' Debug.Print "Filestream::OutStreamFinish called"
     End Sub
 End Class

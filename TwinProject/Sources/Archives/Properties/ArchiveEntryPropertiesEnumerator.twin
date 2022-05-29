@@ -1,4 +1,5 @@
 [ COMCreatable (False) ]
+[ ClassId ("6EE34D24-32C5-4EBF-8916-A458B1E56644") ]
 Private Class ArchiveEntryPropertiesEnumerator
     Implements IEnumVARIANT
 

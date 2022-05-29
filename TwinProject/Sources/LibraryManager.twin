@@ -1,19 +1,46 @@
+[ ClassId ("2987D553-9FDA-4766-AB52-2588F04D6057") ]
 Private Class LibraryManager
-    Private Enum DllType
-    	FullDll = 1 ' => 7z.dll
-        SlimDll = 2 ' => 7za.dll
-        TinyDll = 3 ' => 7zxa.dll
-    End Enum
+    Private Type FunctionPtrs
+    	CreateObject As LongPtr
+        GetHandlerProperty As LongPtr
+        GetHandlerProperty2 As LongPtr
+        GetNumberOfFormats As LongPtr
+        SetCaseSensitive As LongPtr
+        SetLargePageMode As LongPtr
+        GetIsArc As LongPtr
+    End Type
 
     Private Type TData
-        LibModuleHandle As LongPtr
-        LibPath As String
-        DllName As String
-        Type As DllType
+        Caller As UniversalCaller
+        Functions As FunctionPtrs
+        Handlers As Handlers
+        SupportedFormats As String
     End Type
     Private This As TData
 
+    Friend Sub New(LibPath As String)
+        If Free() = False Then
+            Err.Raise 5, CurrentProjectName & "." & CurrentComponentName, "Unable to free the previously loaded library. This is fatal; restarting is recommended."
+        End If
+        Set This.Caller = New UniversalCaller(LibPath)
+        With This.Caller
+            This.Functions.CreateObject = .GetDllFunctionAddress("CreateObject")
+            This.Functions.GetHandlerProperty = .GetDllFunctionAddress("GetHandlerProperty")
+            This.Functions.GetHandlerProperty2 = .GetDllFunctionAddress("GetHandlerProperty2")
+            This.Functions.GetIsArc = .GetDllFunctionAddress("GetIsArc")
+            This.Functions.GetNumberOfFormats = .GetDllFunctionAddress("GetNumberOfFormats")
+            This.Functions.SetCaseSensitive = .GetDllFunctionAddress("SetCaseSensitive")
+            This.Functions.SetLargePageMode = .GetDllFunctionAddress("SetLargePageMode")
+        End With
+    End Sub
+
+    Private Sub Class_Terminate()
+        Free ()
+    End Sub
+
     Public Function CreateInArchive(Format As InArchiveFormat) As IInArchive
+        Const InArchiveIID As String = "{23170F69-40C1-278A-0000-000600600000}"
+        
         Dim hr As Long
         Dim clsId As GUID
         Dim iid As GUID
@@ -22,16 +49,9 @@ Private Class LibraryManager
         If TryGetInFormatClsId(Format, clsId) = False Then
             Err.Raise 5, CurrentComponentName & "." & CurrentProcedureName, "Unable to obtain a valid CLSID for the given format (" & Format & ")."
         End If
-        IIDFromString "{23170F69-40C1-278A-0000-000600600000}", iid
+        IIDFromString InArchiveIID, iid
 
-        Select Case This.Type
-            Case DllType.FullDll
-                hr = SevenZipFullCreateObject(clsId, iid, ia)
-            Case DllType.SlimDll
-                hr = SevenZipSlimCreateObject(clsId, iid, ia)
-            Case DllType.TinyDll
-                hr = SevenZipTinyCreateObject(clsId, iid, ia)
-        End Select
+        hr = Me.CreateObject(clsId, iid, ia)
 
         If hr = 0 Then
             Return ia
@@ -41,6 +61,8 @@ Private Class LibraryManager
     End Function
 
     Public Function CreateOutArchive(Format As OutArchiveFormat) As IOutArchive
+        Const OutArchiveIID As String = "{23170F69-40C1-278A-0000-000600A00000}"
+
         Dim hr As Long
         Dim clsId As GUID
         Dim iid As GUID
@@ -49,17 +71,10 @@ Private Class LibraryManager
         If TryGetOutFormatClsId(Format, clsId) = False Then
             Err.Raise 5, CurrentComponentName & "." & CurrentProcedureName, "Unable to obtain a valid CLSID for the given format (" & Format & ")."
         End If
-        IIDFromString "{23170F69-40C1-278A-0000-000600A00000}", iid
+        IIDFromString OutArchiveIID, iid
 
-        Select Case This.Type
-            Case DllType.FullDll
-                hr = SevenZipFullCreateObject(clsId, iid, oa)
-            Case DllType.SlimDll
-                hr = SevenZipSlimCreateObject(clsId, iid, oa)
-            Case DllType.TinyDll
-                hr = SevenZipTinyCreateObject(clsId, iid, oa)
-        End Select
-
+        hr = Me.CreateObject(clsId, iid, oa)
+        
         If hr = 0 Then
             Return oa
         Else
@@ -67,46 +82,106 @@ Private Class LibraryManager
         End If
     End Function
 
-    Public Sub New(LibPath As String)
-        Dim DllName As String = FSO.GetFileName(LibPath)
-        Dim Type As DllType
-        Select Case DllName
-            Case "7z.dll"
-                Type = DllType.FullDll
-            Case "7za.dll"
-                Type = DllType.SlimDll
-            Case "7zxa.dll"
-                Type = DllType.TinyDll
-            Case Else
-                Err.Raise 5, CurrentProjectName & "." & CurrentComponentName, "Invalid DLL name. Must be '7z.dll', '7za.dll' or '7zxa.dll'. Check the LibPath parameter: '" & LibPath & "'"
-        End Select
-
-        If Free() = False Then
-            Err.Raise 5, CurrentProjectName & "." & CurrentComponentName, "Unable to free the previously loaded library. This is fatal; restarting is recommended."
+    Public Property Get Handlers() As Handlers
+        If This.Handlers Is Nothing Then
+            Set This.Handlers = New Handlers
         End If
+        Return This.Handlers
+    End Property
 
-        This.LibModuleHandle = LoadLibraryW(LibPath)
+    'STDAPI CreateObject(const GUID *clsid, const GUID *iid, void **outObject)
+    Public Function CreateObject( _
+        ByRef clsid As GUID, _ 
+        ByRef iid As GUID, _ 
+        ByRef outObject As IUnknown _
+    ) As Long
+    	Return This.Caller.CallDllFunction(This.Functions.CreateObject, STR_NONE, CR_LONG, CC_STDCALL, VarPtr(clsid), VarPtr(iid), VarPtr(outObject))
+    End Function
 
-        If This.LibModuleHandle <> 0 Then
-            This.LibPath = LibPath
-            This.DllName = DllName
-            This.Type = Type
+    'STDAPI GetHandlerProperty(PROPID propID, PROPVARIANT *value);
+    Public Function GetHandlerProperty( _
+        ByVal propID As ItemPropId, _ 
+        ByRef value As Variant _
+    ) As Long
+        Dim hr As Long = This.Caller.CallDllFunction(This.Functions.GetHandlerProperty, STR_NONE, CR_LONG, CC_STDCALL, CLng(propID), VarPtr(value))
+        CastPropVariantToVariant(value)
+        Return hr
+    End Function
+
+    'STDAPI GetHandlerProperty2(UInt32 formatIndex, PROPID propID, PROPVARIANT *value);
+    Public Function GetHandlerProperty2( _
+    	ByVal formatIndex As Long, _
+        ByVal propID As HandlerPropId, _ 
+        ByRef value As Variant _
+    ) As Long
+        Dim hr As Long = This.Caller.CallDllFunction(This.Functions.GetHandlerProperty2, STR_NONE, CR_LONG, CC_STDCALL, CLng(formatIndex), CLng(propID), VarPtr(value))
+        CastPropVariantToVariant(value)
+        Return hr
+    End Function
+
+    'STDAPI GetNumberOfFormats(UINT32 *numFormats);
+    Public Function GetNumberOfFormats() As Long
+        Dim Count As Long
+        Dim hr As Long
+        hr = This.Caller.CallDllFunction(This.Functions.GetNumberOfFormats, STR_NONE, CR_LONG, CC_STDCALL, VarPtr(Count))
+        If hr = 0 Then
+            Return Count
+        Else
+            Err.ReturnHResult = hr
         End If
-    End Sub
+    End Function
 
-    Private Sub Class_Terminate()
-        Free ()
-    End Sub
+    Public Function IsArchive( _ 
+        ByVal formatIndex As Long, _ 
+        ByRef rawBytes() As Byte _
+    ) As IsArcResults
+        Dim isArcFuncPtr As LongPtr
+        Dim Lower As Long = LBound(rawBytes)
+        Dim Upper As Long = UBound(rawBytes)
+        Dim Size As LongPtr = (Upper - Lower) + 1
 
-    Private Function Free() As Boolean
-    	If This.LibModuleHandle <> 0 Then
-            If FreeLibrary(This.LibModuleHandle) Then
-                This.LibModuleHandle = 0
-                This.LibPath = vbNullString
-                This.DllName = vbNullString
+        'STDAPI GetIsArc(UInt32 formatIndex, Func_IsArc *isArc);
+        If This.Caller.CallDllFunction(This.Functions.GetIsArc, STR_NONE, CR_LONG, CC_STDCALL, CLng(formatIndex), VarPtr(isArcFuncPtr)) = 0 Then
+            If isArcFuncPtr Then
+                'typedef UInt32 (WINAPI *Func_IsArc)(const Byte *p, size_t size);
+                Return This.Caller.CallDllFunction(isArcFuncPtr, STR_NONE, CR_LONG, CC_STDCALL, VarPtr(rawBytes(0)), Size)
+            Else
+                Return IsArcResults.CheckNotAvailable
             End If
         End If
+    End Function
 
-        Return (This.LibModuleHandle = 0)
+    'STDAPI SetCaseSensitive(Int32 caseSensitive)
+    Public Sub SetCaseSensitive( _ 
+        ByVal caseSensitive As Boolean _ 
+    )
+        Dim Value As Long = If(caseSensitive, 1, 0)
+        Err.ReturnHResult = This.Caller.CallDllFunction(This.Functions.SetCaseSensitive, STR_NONE, CR_LONG, CC_STDCALL, CLng(Value))
+    End Sub
+
+    'STDAPI SetLargePageMode()
+    Public Sub SetLargePageMode()
+        Err.ReturnHResult = This.Caller.CallDllFunction(This.Functions.SetLargePageMode, STR_NONE, CR_LONG, CC_STDCALL)
+    End Sub
+
+    Public Function IsSupportedFormat(Format As String) As Boolean
+        Return InStr(1, SupportedFormats(), Format) > 0
+    End Function
+
+    Public Function SupportedFormats() As String
+        If Len(This.SupportedFormats) = 0 Then
+            Dim Handler As Handler
+            For Each Handler In Handlers
+                This.SupportedFormats &= "|" & Handler.Extension
+            Next
+            This.SupportedFormats = Mid$(This.SupportedFormats, 2)
+        End If
+        Return This.SupportedFormats
+    End Function
+    
+    Private Function Free() As Boolean
+        On Error Resume Next
+        Set This.Caller = Nothing
+        Return (Err.Number = 0)
     End Function
 End Class

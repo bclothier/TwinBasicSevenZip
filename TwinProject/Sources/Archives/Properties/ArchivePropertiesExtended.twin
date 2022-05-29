@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("A complete enumeraion of all properties recongized by 7-zip. However, most handlers will not populate majority of those properties.") ]
+[ ClassId ("D27CDDFD-C673-4C82-AFE2-87FE75AE520D") ]
 Public Class ArchivePropertiesExtended
     Private Properties As ArchiveEntry
 

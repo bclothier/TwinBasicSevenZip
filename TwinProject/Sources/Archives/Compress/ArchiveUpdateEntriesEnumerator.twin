@@ -1,4 +1,5 @@
 [ COMCreatable (False) ]
+[ClassId("DB5FB6FE-5533-412D-8F57-3F1C1A734FA0")]
 Private Class ArchiveUpdateEntriesEnumerator
     Implements IEnumVARIANT
 

@@ -184,6 +184,18 @@ Private Class Tester
         Resume 'for debugging
     End Function
 
+    Public Function ViewArchive(Path As String) As Boolean
+        Dim Viewer As ArchiveViewer = New ArchiveViewer(FSO.BuildPath(This.TestPath, Path))
+        
+        Dim Entry As ArchiveEntry
+        For Each Entry In Viewer.Entries
+            Dim Property As ArchivePropertyInfo
+            For Each Property In Entry.Properties
+                Debug.Print Property.Id, Property.Name, Property.Value
+            Next
+        Next
+    End Function
+
     Private Function CompareFolderContents(SourcePath As String, TargetPath As String, IgnoredFilePath As String) As Boolean
         Dim SourceFolder As Scripting.Folder = FSO.GetFolder(SourcePath)
         Dim TargetFolder As Scripting.Folder = FSO.GetFolder(TargetPath)

@@ -1,0 +1,36 @@
+[ ClassId ("B2588D23-5428-4252-BD93-F1206908BB2F") ]
+[ COMCreatable (False) ]
+Public Class Handlers
+    Private Type TData
+        Count As Long
+        List As Scripting.Dictionary
+    End Type
+    Private This As TData
+
+    Friend Sub New()
+        This.Count = LibraryInstance.Manager.GetNumberOfFormats()
+        Set This.List = New Scripting.Dictionary
+
+        Dim Index As Long
+        For Index = 0 To (This.Count - 1)
+            This.List.Add Index, New Handler(Index)
+        Next
+    End Sub
+
+    [ DefaultMember ]
+    Public Property Get Item(Index As Long) As Handler
+        If Index < 0 OrElse Index >= This.Count Then
+            Err.Raise 5, CurrentComponentName, "Invalid index; must be between 0 and " & This.Count - 1
+        End If
+    	Return This.List(Index)
+    End Property
+
+    Public Property Get Count() As Long
+        Return This.Count
+    End Property
+
+    [ Enumerator ]
+    Public Function _NewEnum() As IUnknown
+        Return New HandlerEnumerator(This.List)
+    End Function
+End Class

@@ -64,7 +64,49 @@ Public Module Constants
         WrongPassword
     End Enum
 
-    [ Description ("Codes of item properties") ]
+    [ Description ("Used with IsArc functions to determine if a given file is a valid archive format supported by the given handler.") ]
+    Public Enum IsArcResults
+        NotAnArchive = 0
+        IsArchive = 1
+        NeedMoreBytes = 2
+        CheckNotAvailable = 3
+    End Enum
+
+    [ Description ("Indicates capabilities of a given archive") ]
+    Public Enum ArchiveInfoFlags
+        KeepName = 1 << 0 ' keep name of file in archive name
+        AltStreams = 1 << 1 ' the handler supports alt streams
+        NtSecure = 1 << 2 ' the handler supports NT security
+        FindSignature = 1 << 3 ' the handler can find start of archive
+        MultiSignature = 1 << 4 ' there are several signatures
+        UseGlobalOffset = 1 << 5 ' the seek position of stream must be set as global offset
+        StartOpen = 1 << 6 ' call handler for each start position
+        PureStartOpen = 1 << 7 ' call handler only for start of file
+        BackwardOpen = 1 << 8 ' archive can be open backward
+        PreArc = 1 << 9 ' such archive can be stored before real archive (like SFX stub)
+        SymLinks = 1 << 10 ' the handler supports symbolic links
+        HardLinks = 1 << 11 ' the handler supports hard links
+        ByExtOnlyOpen = 1 << 12 ' call handler only if file extension matches
+        HashHandler = 1 << 13 ' the handler contains the hashes (checksums)
+    End Enum
+
+    [ Description ("Codes for handler properties ") ]
+    Public Enum HandlerPropId
+      HandlerName = 0  ' VT_BSTR
+      ClassID          ' binary GUID in VT_BSTR
+      Extension        ' VT_BSTR
+      AddExtension     ' VT_BSTR
+      Update           ' VT_BOOL
+      KeepName         ' VT_BOOL
+      Signature        ' binary in VT_BSTR
+      MultiSignature   ' binary in VT_BSTR
+      SignatureOffset  ' VT_UI4
+      AltStreams       ' VT_BOOL
+      NtSecure         ' VT_BOOL
+      Flags            ' VT_UI4
+    End Enum
+
+    [ Description ("Codes for item properties") ]
     Public Enum ItemPropId
         ' No property
         NoProperty = 0

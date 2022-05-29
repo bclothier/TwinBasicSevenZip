@@ -1,3 +1,4 @@
+[InterfaceId("982E25C2-C9F6-477A-BD1F-8F53391D8818")]
 Public Interface IProgressView
 	Property Get ProgressTextMajor() As String
     Property Let ProgressTextMajor(NewValue As String)

@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Views the contents of an archive file and its properties.") ]
+[ ClassId ("64835F4D-2D7B-485A-AFAB-24746EE9B027") ]
 Public Class ArchiveViewer
     Implements IArchiveOpenCallback
 
@@ -17,6 +18,11 @@ Public Class ArchiveViewer
     Private This As TData
 
     Friend Sub New(ArchivePath As String, Optional ProgressView As IProgressView)
+        Dim Extension As String = FSO.GetExtensionName(ArchivePath)
+        If LibraryInstance.Manager.IsSupportedFormat(Extension) = False Then
+            Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("view", Extension)
+        End If
+
         Set This.ProgressView = ProgressView
         
         This.ArchivePath = ArchivePath
@@ -82,7 +88,7 @@ Public Class ArchiveViewer
             If VarPtr(Bytes) Then
                 If Bytes > This.CurrentBytes Then
                     This.CurrentBytes = Bytes
-                    .UpdateProgress(CLng(This.CurrentBytes))
+                    .UpdateProgress(TruncateToLong(This.CurrentBytes))
                 End If
             End If
         End With

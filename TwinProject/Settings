@@ -58,9 +58,12 @@
 	],
 	"project.terminalServerAware": true,
 	"project.useProjectIdForTypeLibraryId": true,
+	"project.versionAutoIncrement": "Revision",
+	"project.versionMajor": 1,
+	"project.versionProductName": "7'Zip COM Library",
 	"project.warnings": {
 		"errors": [],
 		"ignored": []
 	},
 	"runtime.useUnicodeStandardLibrary": true
-}
+,"project.versionMinor":0,"project.versionBuild":0,"project.versionRevision":38}

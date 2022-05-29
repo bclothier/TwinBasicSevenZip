@@ -1,65 +1,105 @@
 [ Description ("Create new objects and guarantees proper initialization of the library before using the objects. To use a specific 7-zip DLL file, you must call the ArchiveLibPath first before creating any objects.") ]
+[ ClassId ("94CD29FA-EC08-43C3-A94D-01DBB8F841E3") ]
 Public Class ArchiveFactory
-    Implements IProgressAble
-
-    Private Enum AsyncOperationMode
-    	DoExtract
-        DoCompress
-    End Enum
-
-    Private Type TData
-        OperationMode As AsyncOperationMode
-        ArchivePath As String
-        DestinationFolder As String
-    End Type
-    Private This As TData
-
     [ Description ("Get the path to the dependent 7-Zip DLL library (e.g. 7z.dll, 7za.dll or 7zxa.dll) used by the 7-Zip COM library.") ]
     Public Property Get ArchiveLibPath() As String
-        Return Objects.LibPath
+        Return LibraryInstance.LibPath
     End Property
 
     [ Description ("Set the path to the ddependent 7-Zip DLL library (e.g. 7z.dll, 7za.dll or 7zxa.dll). This must be called befreo using any other methods of the 7-Zip COM library.") ]
     Public Property Let ArchiveLibPath(NewValue As String)
-    	Objects.LibPath = NewValue
+    	LibraryInstance.LibPath = NewValue
     End Property
 
     [ Description ("Get an extractor for a given archive file. The handler is inferred from the file's extension, so a zip handler will be used for .zip file, 7-zip handler for .7z and so forth.") ]
     Public Function CreateArchiveExtractor(ArchivePath As String) As ArchiveExtractor
-        Objects.Init
+        LibraryInstance.Init
+        
         Return New ArchiveExtractor(ArchivePath)
     End Function
 
     [ Description ("Get a compressor to create a new archive file. The handler is determined by file's extension when compressing.") ]
     Public Function CreateArchiveCompressor() As ArchiveCompressor
-        Objects.Init
+        LibraryInstance.Init
+        
         Return New ArchiveCompressor
     End Function
 
     [ Description ("Get an archive viewer. The handler is inferred from the file's extension.") ]
     Public Function CreateArchiveViewer(ArchivePath As String) As ArchiveViewer
-        Objects.Init
+        LibraryInstance.Init
+
         Return New ArchiveViewer(ArchivePath)
     End Function
 
     [ Description ("Release all resources for the library as a aid in cleanup.") ]
     Public Sub ReleaseArchiveLib()
-        Objects.Release
+        LibraryInstance.Release
     End Sub
 
+    [ Description ("Extracts contents from an archive asynchronously.") ]
     Public Sub ExtractAsync(ArchivePath As String, DestinationFolder As String)
-        Objects.Init()
-        This.ArchivePath = ArchivePath
-        This.DestinationFolder = DestinationFolder
-        ProgressFactory.Create(Me)
+        LibraryInstance.Init()
+
+        Dim Extension As String = FSO.GetExtensionName(ArchivePath)
+        If IsFormatSupported(Extension) Then
+            ProgressFactory.Create(New AsyncArchiveExtractor(ArchivePath, DestinationFolder))
+        Else
+        	Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("extract", Extension)
+        End If
     End Sub
 
-    Private Sub DoWork(ProgressView As IProgressView) Implements IProgressAble.DoWork
-    	Select Case This.OperationMode
-            Case AsyncOperationMode.DoExtract
-                With New ArchiveExtractor(This.ArchivePath, ProgressView)
-                    .Extract(This.DestinationFolder)
-                End With
-        End Select
+    [ Description ("Create entries for a new archive path. This can be used later with the CompressAsync method.") ]
+    Public Function CreateNewEntries() As ArchiveUpdateEntries
+        LibraryInstance.Init()
+
+        Return New ArchiveUpdateEntries()
+    End Function
+
+    [ Description ("Create a new archive path for given set of entries, compressing asynchronously.") ]
+    Public Sub CompressAsync(ArchivePath As String, Entries As ArchiveUpdateEntries)
+        LibraryInstance.Init()
+
+        Dim Extension As String = FSO.GetExtensionName(ArchivePath)
+        If IsFormatSupported(Extension) Then
+            ProgressFactory.Create(New AsyncArchiveCompressor(ArchivePath, Entries))
+        Else
+            Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("create", Extension)
+        End If
     End Sub
+
+    [ Description ("Enumerate all supported file formats handled by the loaded library.") ]
+    Public Property Get Handlers() As Handlers
+        LibraryInstance.Init()
+
+        Return LibraryInstance.Manager.Handlers
+    End Property
+
+    [ Description ("Toggles case sensitivity for name comparisons.") ]
+    Public Sub SetCaseSensitive(NewValue As Boolean)
+        LibraryInstance.Init()
+
+        LibraryInstance.Manager.SetCaseSensitive(NewValue)
+    End Sub
+
+    [ Description ("Enable large page mode if available. Refer to 7-zip documentation for details on large page mode.") ]
+    Public Sub SetLargePageMode()
+        LibraryInstance.Init()
+
+        LibraryInstance.Manager.SetLargePageMode()
+    End Sub
+
+    [ Description ("Provide a pipe-delimited string of all supported archive formats for the loaded 7-zip DLL") ]
+    Public Property Get SupportedFormats() As String
+        LibraryInstance.Init()
+
+        Return LibraryInstance.Manager.SupportedFormats
+    End Property
+
+    [ Description ("Check if a format (typically the archive file's extension) is supported by the currently loaded 7-Zip DLL") ]
+    Public Function IsFormatSupported(Format As String) As Boolean
+        LibraryInstance.Init()
+
+        Return LibraryInstance.Manager.IsSupportedFormat(Format)
+    End Function
 End Class

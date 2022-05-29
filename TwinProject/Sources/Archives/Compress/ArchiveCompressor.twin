@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Create new archive files by providing files or folders to the compressor.") ]
+[ ClassId ("4D38E1D0-840E-4EC6-8F0A-AE5B8D859C9B") ]
 Public Class ArchiveCompressor
     Implements IProgress
     Implements IArchiveUpdateCallback
@@ -10,13 +11,25 @@ Public Class ArchiveCompressor
         OutFileStream As Filestream
         Entries As ArchiveUpdateEntries
     	ArchivePath As String
-        DestinatinoPath As String
+        DestinationPath As String
         CommonPath As String
+        ProgressView As IProgressView
+        EntriesProcessed As Long
+        EntriesTotal As Long
+        CompressionProcessed As Long
+        CompressionTotal As Long
+        DisplayName As String
+        IsCompressing As Boolean
     End Type
     Private This As TData
 
     Public Sub New()
         Set This.Entries = New ArchiveUpdateEntries
+    End Sub
+
+    Public Sub New(Entries As ArchiveUpdateEntries, ProgressView As IProgressView)
+    	Set This.Entries = Entries
+        Set This.ProgressView = ProgressView
     End Sub
 
     [ Description ("A list of files or folders to be included in the new archive to be created when Compress method is called.") ]
@@ -26,12 +39,20 @@ Public Class ArchiveCompressor
 
     [ Description ("Create a new archive path at the given path using the supplied files & folders stored in the Entries properties.") ]
     Public Sub Compress(ArchivePath As String)
+        Dim Extension As String = FSO.GetExtensionName(ArchivePath)
+        If LibraryInstance.Manager.IsSupportedFormat(Extension) = False Then
+            Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("create", Extension)
+        End If
+
         Dim Count As Long = This.Entries.Count
         This.CommonPath = This.Entries.GetCommonPath()
 
     	This.ArchivePath = ArchivePath
         Set This.OutFileStream = New Filestream(This.ArchivePath, FileMode.ForWriting)
         Set This.OutArchive = Manager.CreateOutArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
+
+        This.CompressionTotal = Count
+        This.EntriesTotal = Count
 
         This.OutArchive.UpdateItems(This.OutFileStream, Count, Me)
 
@@ -48,11 +69,16 @@ Public Class ArchiveCompressor
     Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IProgress.SetCompleted, IArchiveUpdateCallback.SetCompleted, IArchiveUpdateCallback2.SetCompleted
     	' Debug.Print "IArchiveUpdateCallback::SetCompleted", Timer
         ' Debug.Print "   completeValue: ", If(VarPtr(completeValue), completeValue, "<NULL>")
-        ' Debug.Print ""    
+        ' Debug.Print ""
     End Sub
 
     Private Sub GetUpdateItemInfo(ByVal index As Long, ByRef newData As Long, ByRef newProps As Long, ByRef indexInArchive As Long) Implements IArchiveUpdateCallback.GetUpdateItemInfo, IArchiveUpdateCallback2.GetUpdateItemInfo
-        Debug.Print "IArchiveUpdateCallback::GetUpdateItemInfo", index, Timer, GetCurrentThreadId
+        ' Debug.Print "IArchiveUpdateCallback::GetUpdateItemInfo", index, Timer, GetCurrentThreadId
+
+        If UpdateProgress(index + 1, This.Entries.Count, FSO.GetFileName(This.Entries.Item(index).Path), False) = False Then
+            Err.ReturnHResult = CommonHResults.E_ABORT
+            Exit Sub
+        End If
 
         If VarPtr(newData) <> 0 Then newData = 1
         If VarPtr(newProps) <> 0 Then newProps = 1
@@ -60,7 +86,7 @@ Public Class ArchiveCompressor
     End Sub
 
     Private Sub GetProperty(ByVal index As Long, ByVal propID As Long, ByRef value As Variant) Implements IArchiveUpdateCallback.GetProperty, IArchiveUpdateCallback2.GetProperty
-        Debug.Print "IArchiveUpdateCallback::GetProperty", index, ItemPropIdAsString(propID, CStr(propID)), Timer, GetCurrentThreadId
+        ' Debug.Print "IArchiveUpdateCallback::GetProperty", index, ItemPropIdAsString(propID, CStr(propID)), Timer, GetCurrentThreadId
 
         Dim Entry As ArchiveUpdateEntry = This.Entries.Item(index)
         Dim tmp As Variant
@@ -108,10 +134,16 @@ Public Class ArchiveCompressor
     End Sub
 
     Private Sub GetStream(ByVal index As Long, ByRef inStream As ISequentialInStream) Implements IArchiveUpdateCallback.GetStream, IArchiveUpdateCallback2.GetStream
-        Debug.Print "IArchiveUpdateCallback::GetStream", Timer, GetCurrentThreadId
+        ' Debug.Print "IArchiveUpdateCallback::GetStream", Timer, GetCurrentThreadId
 
         Dim Entry As ArchiveUpdateEntry
         Set Entry = This.Entries.Item(index)
+        
+        If UpdateProgress(index + 1, This.Entries.Count, FSO.GetFileName(This.Entries.Item(index).Path), True) = False Then
+            Err.ReturnHResult = CommonHResults.E_ABORT
+            Exit Sub
+        End If
+
         If Entry.IsDirectory Then
             Set inStream = Nothing
         Else
@@ -120,9 +152,9 @@ Public Class ArchiveCompressor
     End Sub
 
     Private Sub SetOperationResult(ByVal operationResult As Long) Implements IArchiveUpdateCallback.SetOperationResult, IArchiveUpdateCallback2.SetOperationResult
-        Debug.Print "IArchiveUpdateCallback::SetOperationResult", Timer
-        Debug.Print "   operationResult: ", operationResult
-        Debug.Print ""
+        ' Debug.Print "IArchiveUpdateCallback::SetOperationResult", Timer
+        ' Debug.Print "   operationResult: ", operationResult
+        ' Debug.Print ""
     End Sub
 
     Private Sub GetVolumeSize(ByVal index As Long, ByRef size As LongLong) Implements IArchiveUpdateCallback2.GetVolumeSize
@@ -140,5 +172,79 @@ Public Class ArchiveCompressor
         Else
             Return hr
         End If
+    End Function
+
+    Private Function UpdateProgress( _
+        Optional BytesCompleted As Long, _ 
+        Optional BytesTotal As Long, _ 
+        Optional ItemName As String, _ 
+        Optional IsCompressing As Boolean _
+    ) As Boolean
+        Dim UpdateNeeded As Boolean
+
+        If This.ProgressView Is Nothing Then
+            Return True
+        End If
+
+        With This.ProgressView
+            If .CancellationRequested Then
+                Return False
+            End If
+
+            .Indeterminate = (BytesCompleted = 0 AndAlso BytesTotal = 0)
+            If This.IsCompressing <> IsCompressing Then
+                This.IsCompressing = IsCompressing
+            End If
+
+            If This.IsCompressing Then
+                If BytesTotal _ 
+                AndAlso BytesTotal > This.CompressionTotal Then
+                    This.CompressionTotal = BytesTotal
+                    UpdateNeeded = True
+                End If
+
+                If BytesCompleted _ 
+                AndAlso BytesCompleted > This.CompressionProcessed Then
+                    This.CompressionProcessed = BytesCompleted
+                    UpdateNeeded = True
+                End If
+            Else
+                If BytesTotal _ 
+                AndAlso BytesTotal > This.EntriesTotal Then
+                    This.EntriesTotal = BytesTotal
+                    UpdateNeeded = True
+                End If
+
+                If BytesCompleted _ 
+                AndAlso BytesCompleted > This.EntriesProcessed Then
+                    This.EntriesProcessed = BytesCompleted
+                    UpdateNeeded = True
+                End If
+            End If
+
+            If Len(ItemName) > 0 _
+            AndAlso ItemName <> This.DisplayName Then
+                This.DisplayName = ItemName
+                UpdateNeeded = True
+            End If
+
+            If .CancellationRequested Then
+                Return False
+            End If
+
+            If UpdateNeeded Then
+                .UpdateCaptions _
+                    If(IsCompressing, "Compressing ", "Creating an entry for ") & This.DisplayName, _
+                    "Processed " & This.EntriesProcessed & " out of " & This.EntriesTotal & " entries." & vbNewLine & _
+                    "Compressed " & This.CompressionProcessed & " out of " & This.CompressionTotal & " files."
+                .UpdateProgress(This.EntriesProcessed + This.CompressionProcessed, This.EntriesTotal + This.CompressionTotal)
+            End If
+
+            If .CancellationRequested Then
+                Return False
+            End If
+        End With
+        
+        Return True
     End Function
 End Class

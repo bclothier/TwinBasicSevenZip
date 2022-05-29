@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Represent an entry in an existing archive and provide properties for that entry. The set of properties is dynamic and dependent on the archive format.") ]
+[ ClassId ("8659723E-2A19-453C-8A35-DE70F2D07A7D") ]
 Public Class ArchiveEntry
     Private Type TData
         InArchive As IInArchive

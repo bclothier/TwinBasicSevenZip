@@ -1,5 +1,6 @@
 [ Description ("") ]
 [ FormDesignerId ("955F3D0A-0E20-4817-BB58-CDB241FFB9E0") ]
+[ ClassId ("4A69AA54-645F-4687-BF90-A267A49AA483") ]
 Private Class ProgressDialog
     Implements IProgressView
 
@@ -156,12 +157,12 @@ Private Class ProgressDialog
     End Sub
 
     Private Sub RefreshDialog() Implements IProgressView.RefreshDialog
-        Debug.Print "IProgressView::Refresh called"
+        ' Debug.Print "IProgressView::Refresh called"
         Me.Refresh
     End Sub
     
     Private Sub Timer_Timer() Handles Timer.Timer
-        Debug.Print "Timer event enter"
+        ' Debug.Print "Timer event enter"
         Me.Timer.Interval = 0
         Me.Timer.Enabled = False
         ProgressFactory.ProgressViewShowCallback

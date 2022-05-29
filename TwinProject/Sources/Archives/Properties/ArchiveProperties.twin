@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Metadata about a given archive entry in an archive file. The set of proprties available depends on the archive file format and can vary.") ]
+[ ClassId ("4F9AB820-DD62-4C0B-BF5B-F7CE83AE3140") ]
 Public Class ArchiveProperties
     Private Type TData
     	InArchive As IInArchive

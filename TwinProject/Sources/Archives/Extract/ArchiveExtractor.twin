@@ -1,5 +1,6 @@
 [ COMCreatable (False) ]
 [ Description ("Extracts an existing archive file into a specified folder.") ]
+[ ClassId ("0BF536D6-8EE3-4AC7-B8D7-926E74835178") ]
 Public Class ArchiveExtractor
     Implements ArchiveViewer Via Viewer
     Implements IArchiveExtractCallback
@@ -17,6 +18,11 @@ Public Class ArchiveExtractor
     Private This As TData
 
     Public Sub New(ArchivePath As String, Optional ProgressView As IProgressView)
+        Dim Extension As String = FSO.GetExtensionName(ArchivePath)
+        If LibraryInstance.Manager.IsSupportedFormat(Extension) = False Then
+            Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("extract", Extension)
+        End If
+
         Set This.ProgressView = ProgressView
         This.ArchivePath = ArchivePath
         Set Viewer = New ArchiveViewer(This.ArchivePath, This.ProgressView)
@@ -40,7 +46,7 @@ Public Class ArchiveExtractor
         ' If VarPtr(total) = 0 Then
         '     Exit Sub
         ' End If
-        ' If UpdateProgress(BytesTotal:=CLng(total)) = False Then
+        ' If UpdateProgress(BytesTotal:=TruncateToLong(total)) = False Then
         '     Err.ReturnHResult = CommonHResults.E_ABORT
         '     Exit Sub
         ' End If
@@ -53,7 +59,7 @@ Public Class ArchiveExtractor
         ' If VarPtr(completeValue) = 0 Then
         '     Exit Sub
         ' End If
-        ' If UpdateProgress(BytesCompleted:=CLng(completeValue)) = False Then
+        ' If UpdateProgress(BytesCompleted:=TruncateToLong(completeValue)) = False Then
         '     Err.ReturnHResult = CommonHResults.E_ABORT
         '     Exit Sub
         ' End If
@@ -101,7 +107,7 @@ Public Class ArchiveExtractor
                 IsDirectory = (EntryAttributes And vbDirectory) = vbDirectory
             End If
 
-            If UpdateProgress(index, Count, ItemName:=FSO.GetFileName(FullPath)) = False Then
+            If UpdateProgress(index + 1, Count, ItemName:=FSO.GetFileName(FullPath)) = False Then
                 Err.ReturnHResult = CommonHResults.E_ABORT
                 Exit Sub
             End If
@@ -126,23 +132,6 @@ Public Class ArchiveExtractor
         ' Debug.Print ""
     End Sub
 
-    Private Sub SetupProgress()
-        If This.ProgressView Is Nothing Then
-            Exit Sub
-        End If
-
-        With This.ProgressView
-            .ProgressValue = 0
-            Dim ItemsCount As Long
-            This.InArchive.GetNumberOfItems(ItemsCount)
-            .ProgressMax = ItemsCount
-            If .Indeterminate Then
-                .Indeterminate = False
-            End If
-            .UpdateCaptions "Extracting archive '" & FSO.GetFileName (This.ArchivePath) & "'"
-        End With
-    End Sub
-
     Private Function UpdateProgress( _
         Optional BytesCompleted As Long, _ 
         Optional BytesTotal As Long, _ 
@@ -158,7 +147,9 @@ Public Class ArchiveExtractor
             If .CancellationRequested Then
                 Return False
             End If
-        
+
+            .Indeterminate = (BytesCompleted = 0 AndAlso BytesTotal = 0)
+            
             If BytesTotal _ 
             AndAlso BytesTotal > This.Total Then
                 This.Total = BytesTotal

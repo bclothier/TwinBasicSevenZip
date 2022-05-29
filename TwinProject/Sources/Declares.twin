@@ -3,9 +3,10 @@ Private Module Declares
         Data1 As Long
         Data2 As Integer
         Data3 As Integer
-        Data4(0 To 7) As Byte
+        'Data4(0 To 7) As Byte
+        Data4 As Currency
     End Type
-    
+
     Public Type FILETIME
         dwLowDateTime As Long
         dwHighDateTime As Long
@@ -119,6 +120,13 @@ Private Module Declares
     ' );
     Public DeclareWide PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As String, ByRef lpiid As GUID) As Long
 
+    ' int StringFromGUID2(
+    '   [in]  REFGUID  rguid,
+    '   [out] LPOLESTR lpsz,
+    '   [in]  int      cchMax
+    ' );    
+    Public DeclareWide PtrSafe Function StringFromGUID2 Lib "ole32" (ByRef rguid As GUID, ByVal lpsz As String, ByVal cchMax As Long) As Long
+
     ' HMODULE LoadLibraryW(
     '   [in] LPCWSTR lpLibFileName
     ' );
@@ -138,9 +146,95 @@ Private Module Declares
     
     Public Declare PtrSafe Function GetCurrentThreadId Lib "kernel32" () As Long
 
-    'Zip file require using 7z.dll, not 7za.dll. 7z.dll is provided from a full install of 7-zip software
-	'STDAPI CreateObject(const GUID *clsid, const GUID *iid, void **outObject)
-    Public Declare PtrSafe Function SevenZipFullCreateObject Lib "7z.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
-    Public Declare PtrSafe Function SevenZipSlimCreateObject Lib "7za.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
-    Public Declare PtrSafe Function SevenZipTinyCreateObject Lib "7zxa.dll" Alias "CreateObject" (ByRef clsid As GUID, ByRef iid As GUID, ByRef outObject As IInArchive) As Long
+    Public Enum KNWONFOLDERFLAGS
+        KF_FLAG_DEFAULT = &H00000000
+        KF_FLAG_FORCE_APP_DATA_REDIRECTION = &H00080000
+        KF_FLAG_RETURN_FILTER_REDIRECTION_TARGET = &H00040000
+        KF_FLAG_FORCE_PACKAGE_REDIRECTION = &H00020000
+        KF_FLAG_NO_PACKAGE_REDIRECTION = &H00010000
+        KF_FLAG_FORCE_APPCONTAINER_REDIRECTION = &H00020000
+        KF_FLAG_NO_APPCONTAINER_REDIRECTION = &H00010000
+        KF_FLAG_CREATE = &H00008000
+        KF_FLAG_DONT_VERIFY = &H00004000
+        KF_FLAG_DONT_UNEXPAND = &H00002000
+        KF_FLAG_NO_ALIAS = &H00001000
+        KF_FLAG_INIT = &H00000800
+        KF_FLAG_DEFAULT_PATH = &H00000400
+        KF_FLAG_NOT_PARENT_RELATIVE = &H00000200
+        KF_FLAG_SIMPLE_IDLIST = &H00000100
+        KF_FLAG_ALIAS_ONLY = &H80000000
+    End Enum
+    
+    ' HRESULT SHGetKnownFolderPath(
+    '   [in]           REFKNOWNFOLDERID rfid,
+    '   [in]           DWORD            dwFlags,
+    '   [in, optional] HANDLE           hToken,
+    '   [out]          PWSTR            *ppszPath
+    ' );
+    Private Declare PtrSafe Function SHGetKnownFolderPath Lib "shell32" ( _ 
+        ByRef rfid As GUID, _ 
+        ByVal dwFlags As KNWONFOLDERFLAGS, _ 
+        ByVal hToken As LongPtr, _ 
+        ByRef ppszPath As LongPtr _
+    ) As Long
+
+    ' void CoTaskMemFree(
+    '   [in, optional] _Frees_ptr_opt_ LPVOID pv
+    ' );
+    Private Declare PtrSafe Sub CoTaskMemFree Lib "ole32" ( _ 
+        ByVal pv As LongPtr _ 
+    )
+
+    Private Declare PtrSafe Function lstrlen Lib "kernel32" Alias "lstrlenW" ( _
+        ByVal lpString As LongPtr _
+    ) As Long
+
+    ' BSTR SysAllocStringLen(
+    '   [in] const OLECHAR *strIn,
+    '   [in] UINT          ui
+    ' );
+    Private DeclareWide PtrSafe Function SysAllocStringLen Lib "oleaut32" ( _ 
+        ByVal strIn As LongPtr, _ 
+        ByVal ui As Long _
+    ) As String
+
+    Public Enum ProgramFilesBitness
+        ProgramFilesDefault
+        ProgramFilesX64
+        ProgramFilesX32
+    End Enum
+
+    Public Function GetProgramFilesPath(Optional Bitness As ProgramFilesBitness = ProgramFilesBitness.ProgramFilesDefault) As String
+        Const FOLDERID_ProgramFiles    As String = "{905e63b6-c1bf-494e-b29c-65b732d3d21a}"
+        Const FOLDERID_ProgramFilesX64 As String = "{6D809377-6AF0-444b-8957-A3773F02200E}"
+        Const FOLDERID_ProgramFilesX86 As String = "{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}"
+
+        Dim folderIdString As String
+        Select Case Bitness
+            Case ProgramFilesBitness.ProgramFilesDefault
+                folderIdString = FOLDERID_ProgramFiles
+            Case ProgramFilesBitness.ProgramFilesX32
+                folderIdString = FOLDERID_ProgramFilesX86
+            Case ProgramFilesBitness.ProgramFilesX64
+                folderIdString = FOLDERID_ProgramFilesX64
+            Case Else
+                Err.Raise 5, CurrentProcedureName, "Invalid value for parameter 'Bitness'; it must be one of the ProgramFilesBitness enum values."
+        End Select
+        
+        Dim folderId As GUID
+        Dim hr As Long
+        hr = CLSIDFromString(folderIdString, folderId)
+        If hr < 0 Then
+            Err.Raise hr
+        End If
+
+        Dim ptr As LongPtr
+        hr = SHGetKnownFolderPath(folderId, 0, 0, ptr)
+        If hr = 0 Then
+            Dim Result As String
+            Result = SysAllocStringLen(ptr, lstrlen(ptr))
+        End If
+        CoTaskMemFree (ptr)
+        Return Result
+    End Function
 End Module
