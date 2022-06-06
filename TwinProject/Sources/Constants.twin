@@ -23,6 +23,11 @@ Public Module Constants
         SZ_SEEK_END = 2
     End Enum
 
+    Public Enum FileMode
+    	ForWriting = Scripting.ForWriting
+        ForReading = Scripting.ForReading
+    End Enum
+
     [ Description ("Indicates the format of the file time used.") ]
     Public Enum FileTimeType
         Windows = 0

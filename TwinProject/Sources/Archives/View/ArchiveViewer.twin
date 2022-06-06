@@ -7,7 +7,7 @@ Public Class ArchiveViewer
     Private Type TData
         ArchivePath As String
         InArchive As IInArchive
-        InFileStream As Filestream
+        InFileStream As IFilestream
         Entries As ArchiveEntries
         Properties As ArchiveProperties
         ProgressView As IProgressView
@@ -26,7 +26,7 @@ Public Class ArchiveViewer
         Set This.ProgressView = ProgressView
         
         This.ArchivePath = ArchivePath
-        Set This.InFileStream = New Filestream(This.ArchivePath, FileMode.ForReading)
+        Set This.InFileStream = FilestreamFactory.Create(This.ArchivePath, FileMode.ForReading)
         
         Set This.InArchive = Manager.CreateInArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
         This.ArchiveFileSize = FSO.GetFile(This.ArchivePath).Size

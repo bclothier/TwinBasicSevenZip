@@ -4,11 +4,12 @@
 Public Class ArchiveExtractor
     Implements ArchiveViewer Via Viewer
     Implements IArchiveExtractCallback
+    Implements IArchiveExtractCallbackMessage
 
     Private Type TData
     	ArchivePath As String
         InArchive As IInArchive
-        InFileStream As Filestream
+        InFileStream As IFilestream
         DestinationPath As String
         ProgressView As IProgressView
         Processed As Long
@@ -42,7 +43,7 @@ Public Class ArchiveExtractor
         This.InArchive.Extract(0, -1, False, Me)
     End Sub
     
-    Private Sub SetTotal(ByVal total As LongLong) Implements IArchiveExtractCallback.SetTotal
+    Private Sub SetTotal(ByVal total As LongLong) Implements IArchiveExtractCallback.SetTotal, IArchiveExtractCallbackMessage.SetTotal
         ' If VarPtr(total) = 0 Then
         '     Exit Sub
         ' End If
@@ -55,7 +56,7 @@ Public Class ArchiveExtractor
         ' Debug.Print ""
     End Sub
     
-    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IArchiveExtractCallback.SetCompleted
+    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IArchiveExtractCallback.SetCompleted, IArchiveExtractCallbackMessage.SetCompleted
         ' If VarPtr(completeValue) = 0 Then
         '     Exit Sub
         ' End If
@@ -69,7 +70,7 @@ Public Class ArchiveExtractor
     End Sub
     
     Private Sub GetStream(ByVal index As Long, ByRef outStream As ISequentialOutStream, ByVal askExtractMode As Long) Implements IArchiveExtractCallback.GetStream
-        Debug.Print "IArchiveExtractCallback::GetStream", Timer, GetCurrentThreadId
+        ' Debug.Print "IArchiveExtractCallback::GetStream", Timer, GetCurrentThreadId
         
         Dim ItemName As Variant
         This.InArchive.GetProperty(index, ItemPropId.Path, ItemName)
@@ -116,7 +117,9 @@ Public Class ArchiveExtractor
                 CheckAndCreateMissingSubFolders(FullPath)
             End If
 
-            Set outStream = New Filestream(FullPath, FileMode.ForWriting)
+            If Not IsDirectory Then
+                Set outStream = FilestreamFactory.Create(FullPath, FileMode.ForWriting)
+            End If
         End If
     End Sub
 
@@ -186,4 +189,12 @@ Public Class ArchiveExtractor
         
         Return True
     End Function
+
+    Private Sub ReportExtractResult( _
+        ByVal indexType As Long, _
+        ByVal index As Long, _ 
+        ByVal opRes As Long _
+    ) Implements IArchiveExtractCallbackMessage.ReportExtractResult
+        ' Debug.Print "IArchiveExtractCallbackMessage::ReportExtractResult", indexType, index, opRes
+    End Sub
 End Class

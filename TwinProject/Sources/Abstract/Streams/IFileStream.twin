@@ -1,0 +1,4 @@
+[ Description ("A marker interface indicating this works with file streams") ]
+Private Interface IFileStream
+    Sub New(FilePath As String, Mode As FileMode)
+End Class
