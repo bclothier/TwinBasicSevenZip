@@ -38,12 +38,12 @@ Public Class ArchiveFactory
     End Sub
 
     [ Description ("Extracts contents from an archive asynchronously.") ]
-    Public Sub ExtractAsync(ArchivePath As String, DestinationFolder As String)
+    Public Sub ExtractAsync(ArchivePath As String, DestinationFolder As String, ShowUi As Boolean)
         LibraryInstance.Init()
 
         Dim Extension As String = FSO.GetExtensionName(ArchivePath)
         If IsFormatSupported(Extension) Then
-            ProgressFactory.Create(New AsyncArchiveExtractor(ArchivePath, DestinationFolder))
+            ProgressFactory.Create(New AsyncArchiveExtractor(ArchivePath, DestinationFolder), ShowUi)
         Else
         	Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("extract", Extension)
         End If
@@ -57,12 +57,12 @@ Public Class ArchiveFactory
     End Function
 
     [ Description ("Create a new archive path for given set of entries, compressing asynchronously.") ]
-    Public Sub CompressAsync(ArchivePath As String, Entries As ArchiveUpdateEntries)
+    Public Sub CompressAsync(ArchivePath As String, Entries As ArchiveUpdateEntries, ShowUi As Boolean)
         LibraryInstance.Init()
 
         Dim Extension As String = FSO.GetExtensionName(ArchivePath)
         If IsFormatSupported(Extension) Then
-            ProgressFactory.Create(New AsyncArchiveCompressor(ArchivePath, Entries))
+            ProgressFactory.Create(New AsyncArchiveCompressor(ArchivePath, Entries), ShowUi)
         Else
             Err.Raise 5, CurrentProcedureName, GetErrorUnsupportedFormatString("create", Extension)
         End If
