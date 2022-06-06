@@ -5,10 +5,12 @@ Public Class ArchiveCompressor
     Implements IProgress
     Implements IArchiveUpdateCallback
     Implements IArchiveUpdateCallback2
+    Implements IArchiveUpdateCallbackFile
+    Implements IArchiveExtractCallbackMessage
 
     Private Type TData
         OutArchive As IOutArchive
-        OutFileStream As Filestream
+        OutFileStream As IFilestream
         Entries As ArchiveUpdateEntries
     	ArchivePath As String
         DestinationPath As String
@@ -48,7 +50,7 @@ Public Class ArchiveCompressor
         This.CommonPath = This.Entries.GetCommonPath()
 
     	This.ArchivePath = ArchivePath
-        Set This.OutFileStream = New Filestream(This.ArchivePath, FileMode.ForWriting)
+        Set This.OutFileStream = FilestreamFactory.Create(This.ArchivePath, FileMode.ForWriting)
         Set This.OutArchive = Manager.CreateOutArchive(GetFormatFromFileExtension(FSO.GetExtensionName(This.ArchivePath)))
 
         This.CompressionTotal = Count
@@ -60,14 +62,14 @@ Public Class ArchiveCompressor
         Set This.OutFileStream = Nothing
     End Sub
 
-    Private Sub SetTotal(ByVal total As LongLong) Implements IProgress.SetTotal, IArchiveUpdateCallback.SetTotal, IArchiveUpdateCallback2.SetTotal
-    	' Debug.Print "IArchiveUpdateCallback::SetTotal", Timer
+    Private Sub SetTotal(ByVal total As LongLong) Implements IProgress.SetTotal, IArchiveUpdateCallback.SetTotal, IArchiveUpdateCallback2.SetTotal, IArchiveExtractCallbackMessage.SetTotal
+    	' Debug.Print "IArchiveUpdateCallback::SetTotal", Timer, App.ThreadID
         ' Debug.Print "   total: ", If(VarPtr(total), total, "<NULL>")
         ' Debug.Print ""
     End Sub
 
-    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IProgress.SetCompleted, IArchiveUpdateCallback.SetCompleted, IArchiveUpdateCallback2.SetCompleted
-    	' Debug.Print "IArchiveUpdateCallback::SetCompleted", Timer
+    Private Sub SetCompleted(ByRef completeValue As LongLong) Implements IProgress.SetCompleted, IArchiveUpdateCallback.SetCompleted, IArchiveUpdateCallback2.SetCompleted, IArchiveExtractCallbackMessage.SetCompleted
+    	' Debug.Print "IArchiveUpdateCallback::SetCompleted", Timer, App.ThreadID
         ' Debug.Print "   completeValue: ", If(VarPtr(completeValue), completeValue, "<NULL>")
         ' Debug.Print ""
     End Sub
@@ -131,11 +133,12 @@ Public Class ArchiveCompressor
         End If
 
         Err.ReturnHResult = PropVariantChangeType(value, tmp, &H0, vt)
+        ' Debug.Print "IArchiveUpdateCallback::GetProperty", value
     End Sub
 
     Private Sub GetStream(ByVal index As Long, ByRef inStream As ISequentialInStream) Implements IArchiveUpdateCallback.GetStream, IArchiveUpdateCallback2.GetStream
         ' Debug.Print "IArchiveUpdateCallback::GetStream", Timer, GetCurrentThreadId
-
+        
         Dim Entry As ArchiveUpdateEntry
         Set Entry = This.Entries.Item(index)
         
@@ -147,8 +150,9 @@ Public Class ArchiveCompressor
         If Entry.IsDirectory Then
             Set inStream = Nothing
         Else
-            Set inStream = New Filestream(Entry.Path, FileMode.ForReading)
+            Set inStream = FilestreamFactory.Create(Entry.Path, FileMode.ForReading)
         End If
+        ' Debug.Print "IArchiveUpdateCallback::GetStream Exit", App.ThreadID
     End Sub
 
     Private Sub SetOperationResult(ByVal operationResult As Long) Implements IArchiveUpdateCallback.SetOperationResult, IArchiveUpdateCallback2.SetOperationResult
@@ -158,9 +162,11 @@ Public Class ArchiveCompressor
     End Sub
 
     Private Sub GetVolumeSize(ByVal index As Long, ByRef size As LongLong) Implements IArchiveUpdateCallback2.GetVolumeSize
+        ' Debug.Print "IArchiveUpdateCallback::GetVolumeSize"
     End Sub
 
     Private Sub GetVolumeStream(ByVal index As Long, ByRef volumeStream As ISequentialOutStream) Implements IArchiveUpdateCallback2.GetVolumeStream
+        ' Debug.Print "IArchiveUpdateCallback::GetVolumeStream"
     End Sub
 
     Private Function TryConvertDateToFileTimeAsPropVariant(ByVal InputDate As Variant, ByRef OutResult As Variant) As Long
@@ -247,4 +253,21 @@ Public Class ArchiveCompressor
         
         Return True
     End Function
+
+    Private Sub GetStream2(ByVal index As Long, ByRef inStream As ISequentialInStream, ByVal notifyOp As Long) Implements IArchiveUpdateCallbackFile.GetStream2
+        Debug.Print "IArchiveUpdateCallbackFile::GetStream2 called", index, notifyOp
+        GetStream(index, inStream)
+    End Sub
+
+    Private Sub ReportOperation(ByVal indextype As Long, ByVal index As Long, ByVal notifyOp As Long) Implements IArchiveUpdateCallbackFile.ReportOperation
+    	Debug.Print "IArchiveUpdateCallbackFile::ReportOperation called", indextype, index, notifyOp
+    End Sub
+
+    Private Sub ReportExtractResult( _
+        ByVal indexType As Long, _
+        ByVal index As Long, _ 
+        ByVal opRes As Long _
+    ) Implements IArchiveExtractCallbackMessage.ReportExtractResult
+        ' Debug.Print "IArchiveExtractCallbackMessage::ReportExtractResult", indexType, index, opRes
+    End Sub
 End Class

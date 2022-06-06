@@ -1,0 +1,6 @@
+Private Module FilestreamFactory
+    Public Function Create(FilePath As String, Mode As FileMode) As IFileStream
+    	'Return New AdoFilestream(FilePath, Mode)
+        Return New VbaFilestream(FilePath, Mode)
+    End Function
+End Module

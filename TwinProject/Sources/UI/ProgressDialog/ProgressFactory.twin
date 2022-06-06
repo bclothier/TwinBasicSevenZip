@@ -452,7 +452,7 @@ Private Module ProgressFactory
     End Type
     Private SharedThreadData As TSharedThreadData
 
-    Public Sub Create(Worker As IProgressAble)
+    Public Sub Create(Worker As IProgressAble, ShowUi As Boolean)
         With SharedThreadData
             If .WorkThreadHandle Then
                 Err.Raise 5, CurrentComponentName, "Cannot create more than one active progress thread."
@@ -460,11 +460,16 @@ Private Module ProgressFactory
 
             Set .Progressable = Worker
             
-            .WorkThreadAddress = AddressOf ExecuteDoWork
-            .UiThreadAddress = AddressOf ShowProgressView
-            .PumpThreadAddress = AddressOf MessagePump
+            If ShowUi Then
+                .WorkThreadAddress = AddressOf ExecuteDoWork
+                .UiThreadAddress = AddressOf ShowProgressView
+                .PumpThreadAddress = AddressOf MessagePump
 
-            .PumpThreadHandle = CreateThread(&H0, &H0, .PumpThreadAddress, &H0, &H0, .PumpThreadId)
+                .PumpThreadHandle = CreateThread(&H0, &H0, .PumpThreadAddress, &H0, &H0, .PumpThreadId)
+            Else
+                .WorkThreadAddress = AddressOf ExecuteDoWork
+                .WorkThreadHandle = CreateThread(&H0, &H0, .WorkThreadAddress, &h1, &h0, .WorkThreadId)
+            End If
         End With
     End Sub
 
@@ -580,14 +585,16 @@ Private Module ProgressFactory
         Resume ExitProc
     End Sub
 
-    Private Function ExecuteDoWork(ByVal Ignored As LongPtr) As Long
+    Private Function ExecuteDoWork(ByVal SkipSendMessageOnCompletion As LongPtr) As Long
         On Error GoTo ErrHandler
 
         SharedThreadData.Progressable.DoWork(SharedThreadData.ProgressView)
         
     ExitProc:
         With SharedThreadData
-            PostThreadMessage .PumpThreadId, WindowMessages.WM_USER, &h0, &h0
+            If SkipSendMessageOnCompletion = False Then
+                PostThreadMessage .PumpThreadId, WindowMessages.WM_USER, &h0, &h0
+            End If
             If .WorkThreadHandle Then
                 CloseHandle .WorkThreadHandle
                 .WorkThreadHandle = 0

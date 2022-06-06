@@ -1,0 +1,182 @@
+[ COMCreatable (False) ]
+[ ClassId ("3F6DDEAB-F06F-4D88-B801-E8928E08208A") ]
+Private Class VbaFilestream
+    Implements IFileStream
+    Implements ISequentialInStream
+    Implements IInStream
+    Implements IOutStream
+    Implements ISequentialOutStream
+    Implements IOutStreamFinish
+    Implements IStreamGetProps
+    Implements IStreamGetProps2
+    Implements IStreamGetSize
+
+    Private Type TData
+        Mode As FileMode
+        FilePath As String
+        Position As Long
+        FileNum As Long
+    End Type
+    Private This As TData
+
+    Public Sub New(FilePath As String, Mode As FileMode) Implements IFileStream.New
+        Debug.Print App.ThreadID, "New Filestream created: ", FilePath, Mode
+        
+    	This.Mode = Mode
+        This.FilePath = FilePath
+        This.FileNum = FreeFile()
+        If This.Mode = FileMode.ForWriting Then
+            CheckAndCreateMissingSubFolders(FSO.GetParentFolderName(This.FilePath))
+            Open This.FilePath For Binary Access Read Write Shared As This.FileNum
+        Else
+        	Open This.FilePath For Binary Access Read Shared As This.FileNum
+        End If
+    End Sub
+
+    Private Sub Class_Terminate()
+        Debug.Print App.ThreadID, "Filestream terminated"
+
+        If This.FileNum Then
+        	Close This.FileNum
+            This.FileNum = 0
+        End If
+    End Sub
+    
+    Private Sub Read(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) Implements ISequentialInStream.Read, IInStream.Read
+        Debug.Print App.ThreadID, "Filestream::Read called", size
+        'Debug.Assert size >= 0
+
+        If This.Mode <> FileMode.ForReading Then
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = 0
+            End If
+            Exit Sub
+        End If
+
+        Dim StartPos As Long = This.Position
+        If size > (LOF(This.FileNum) - StartPos) Then
+            size = (LOF(This.FileNum) - StartPos)
+        End If
+            
+        Dim Buffer() As Byte
+        If size > 0 Then
+            ReDim Buffer(0 To size - 1)
+            Get This.FileNum, This.Position + 1, Buffer
+            RtlMoveMemory ByVal data, Buffer(0), size
+
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = (Loc(This.FileNum) - StartPos)
+            End If
+
+            This.Position = Loc(This.FileNum)
+        Else
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = 0
+            End If
+        End If
+
+        'Debug.Assert This.Position >= 0
+        'Debug.Print StartPos, size, If(VarPtr(processedSize) <> 0, processedSize, "N/A"), This.Position
+    End Sub
+
+    Private Sub Seek(ByVal offset As LongLong, ByVal seekOrigin As Long, ByRef newPosition As LongLong) Implements IInStream.Seek, IOutStream.Seek
+        Debug.Print App.ThreadID, "Filestream::Seek called", seekOrigin, offset
+        Const E_NEGATIVE_SEEK As Long = &H80070083&
+
+    	Select Case seekOrigin
+            Case StreamSeekOrigin.SZ_SEEK_SET
+                This.Position = TruncateToLong(offset)
+            Case StreamSeekOrigin.SZ_SEEK_CUR
+                This.Position = This.Position + TruncateToLong(offset)
+            Case StreamSeekOrigin.SZ_SEEK_END
+                If FSO.FileExists(This.FilePath) Then
+                    This.Position = FileLen(This.FilePath)
+                Else
+                    This.Position = 0
+                End If
+        End Select
+        If VarPtr(newPosition) <> 0 Then newPosition = This.Position
+
+        'Debug.Assert This.Position >= 0
+        'Debug.Print "Seek:", seekOrigin, offset, This.Position
+    End Sub
+    
+    Private Sub Write(ByVal data As LongPtr, ByVal size As Long, ByRef processedSize As Long) Implements ISequentialOutStream.Write, IOutStream.Write
+        Debug.Print App.ThreadID, "Filestream::Write called", size
+        'Debug.Assert size >= 0
+        If This.Mode <> FileMode.ForWriting Then
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = 0
+            End If
+            Exit Sub
+        End If
+
+        Dim StartPos As Long = This.Position
+        
+        Dim Buffer() As Byte
+        If size > 0 Then
+            ReDim Buffer(0 To size - 1)
+            RtlMoveMemory Buffer(0), ByVal data, size
+            Put This.FileNum, This.Position + 1, Buffer
+
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = Loc(This.FileNum) - StartPos
+            End If
+            
+            This.Position = Loc(This.FileNum)
+        Else
+            If VarPtr(processedSize) <> 0 Then
+                processedSize = 0
+            End If
+        End If
+
+        'Debug.Assert This.Position >= 0
+        'Debug.Print LOF(FileNum), Loc(FileNum), StartPos, size, If(VarPtr(processedSize), processedSize, "N/A")
+    End Sub
+
+    Private Sub SetSize(ByVal newSize As LongLong) Implements IOutStream.SetSize
+        Debug.Print App.ThreadID, "Filestream::SetSize called"
+    	'Ignored
+    End Sub
+
+    Private Sub OutStreamFinish() Implements IOutStreamFinish.OutStreamFinish
+    	Debug.Print App.ThreadID, "Filestream::OutStreamFinish called"
+    End Sub
+
+    Private Sub GetProps( _
+        ByRef size As LongLong, _
+        ByRef cTime As FILETIME, _
+        ByRef aTime As FILETIME, _
+        ByRef mTime As FILETIME, _
+        ByRef attrib As Long _
+    ) Implements IStreamGetProps.GetProps
+        Debug.Print App.ThreadID, "IStreamGetProps::GetProps called"
+    	With FSO.GetFile(This.FilePath)
+            If VarPtr(size) Then size = .Size
+            If VarPtr(cTime) Then PropVariantToFileTime(.DateCreated, PSTIME_FLAGS.PSTF_LOCAL, cTime)
+            If VarPtr(aTime) Then PropVariantToFileTime(.DateLastAccessed, PSTIME_FLAGS.PSTF_LOCAL, aTime)
+            If VarPtr(mTime) Then PropVariantToFileTime(.DateLastModified, PSTIME_FLAGS.PSTF_LOCAL, mTime)
+            If VarPtr(attrib) Then attrib = .Attributes
+        End With
+    End Sub
+
+    Private Sub GetProps2(ByRef props As CStreamFileProps) Implements IStreamGetProps2.GetProps2
+        Debug.Print App.ThreadID, "IStreamGetProps2::GetProp2s called"
+        If VarPtr(props) Then
+            With FSO.GetFile(This.FilePath)
+                props.Size = .Size
+                PropVariantToFileTime(.DateCreated, PSTIME_FLAGS.PSTF_LOCAL, props.CTime)
+                PropVariantToFileTime(.DateLastAccessed, PSTIME_FLAGS.PSTF_LOCAL, props.ATime)
+                PropVariantToFileTime(.DateLastModified, PSTIME_FLAGS.PSTF_LOCAL, props.MTime)
+                props.Attribs = .Attributes
+            End With
+        End If
+    End Sub
+
+    Private Sub GetSize(ByRef size As LongLong) Implements IStreamGetSize.GetSize
+        Debug.Print App.ThreadID, "IStreamGetSize::GetSize called", This.FilePath
+        If VarPtr(size) Then
+            size = FSO.GetFile(This.FilePath).Size
+        End If
+    End Sub
+End Class

@@ -1,21 +1,21 @@
 [ Description ("Provide exported functions which can be used with Declare statements and thus avoid the need to register COM objects.") ]
 Public Module Exports
 	[ DllExport () ]
-    Public Sub Extract(ArchivePath As String, DestinationFolder As String)
+    Public Sub Extract(ByRef ArchivePath As String, ByRef DestinationFolder As String)
         Dim Extractor As ArchiveExtractor = New ArchiveExtractor(ArchivePath)
         Extractor.Extract DestinationFolder
         LibraryInstance.Release
     End Sub
 
     [ DllExport () ]
-    Public Sub ExtractAsync(ArchivePath As String, DestinationFolder As String)
+    Public Sub ExtractAsync(ByRef ArchivePath As String, ByRef DestinationFolder As String, ByVal ShowUi As Boolean)
     	With New ArchiveFactory()
-            .ExtractAsync(ArchivePath, DestinationFolder)
+            .ExtractAsync(ArchivePath, DestinationFolder, ShowUi)
         End With
     End Sub
 
     [ DllExport () ]
-    Public Sub Compress(SourcePath As String, ArchivePath As String)
+    Public Sub Compress(ByRef SourcePath As String, ByRef ArchivePath As String)
         Dim Compressor As ArchiveCompressor = New ArchiveCompressor()
         If FSO.FolderExists(SourcePath) Then
             Compressor.Entries.AddDirectory(SourcePath, True)
@@ -29,11 +29,11 @@ Public Module Exports
     End Sub
 
     [ DllExport () ]
-    Public Sub CompressAsync(SourcePath As String, ArchivePath As String)
+    Public Sub CompressAsync(ByRef SourcePath As String, ByRef ArchivePath As String, ByVal ShowUi As Boolean)
     	With New ArchiveFactory()
             Dim Entries As ArchiveUpdateEntries = .CreateNewEntries()
             Entries.AddDirectory(SourcePath, True)
-            .CompressAsync(ArchivePath, Entries)
+            .CompressAsync(ArchivePath, Entries, ShowUi)
         End With
     End Sub
 
